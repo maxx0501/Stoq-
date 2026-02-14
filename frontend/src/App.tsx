@@ -11,10 +11,13 @@ import { Customers } from './pages/Customers';
 import { Settings } from './pages/Settings';
 import { Subscription } from './pages/Subscription';
 import { SuperAdmin } from './pages/SuperAdmin';
+import { CashFlow } from './pages/CashFlow'; // <--- (1) OBA! O IMPORT VOLTOU
 import { Store, Zap, Tag } from 'lucide-react';
 
 export default function App() {
-  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin'>('home'); 
+  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow'>('home'); 
+  // (2) Adicionei 'cashflow' na tipagem acima ^
+
   const [user, setUser] = useState<any>(null);
   const [activeStoreName, setActiveStoreName] = useState('');
 
@@ -22,13 +25,11 @@ export default function App() {
     name: '', email: '', password: '', storeName: ''
   });
 
-  // --- NOVO: ESTADO DO TEMA ---
   const [theme, setTheme] = useState(() => {
     if (localStorage.getItem('stoq_theme') === 'dark') return 'dark';
     return 'light';
   });
 
-  // --- EFEITO: APLICA A CLASSE NO HTML ---
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -43,7 +44,6 @@ export default function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
-  // --- EFEITO: MEMÓRIA DE LOGIN ---
   useEffect(() => {
     const token = localStorage.getItem('stoq_token');
     if (token) {
@@ -51,14 +51,14 @@ export default function App() {
       const savedUserRole = localStorage.getItem('stoq_user_role');
       const savedStore = localStorage.getItem('stoq_store_name');
       const savedAvatar = localStorage.getItem('stoq_user_avatar');
-      const savedIsSuperAdmin = localStorage.getItem('stoq_is_super_admin') === 'true'; // <--- NOVO
+      const savedIsSuperAdmin = localStorage.getItem('stoq_is_super_admin') === 'true'; 
       
       if (savedUserName) {
           setUser({ 
               name: savedUserName, 
               role: savedUserRole || 'SELLER',
               avatarUrl: savedAvatar || '',
-              isSuperAdmin: savedIsSuperAdmin // <--- NOVO
+              isSuperAdmin: savedIsSuperAdmin
           });
       }
       if (savedStore) setActiveStoreName(savedStore);
@@ -67,7 +67,6 @@ export default function App() {
     }
   }, []);
 
-  // --- LOGIN ---
   const handleLogin = async () => {
     try {
       const response = await fetch('http://localhost:3333/auth/login', {
@@ -105,7 +104,6 @@ export default function App() {
     }
   };
 
-  // --- CADASTRO ---
   const handleRegister = async () => {
     if (!formData.storeName) return alert("Por favor, dê um nome para sua loja.");
 
@@ -129,7 +127,6 @@ export default function App() {
     }
   };
 
-  // --- LOGOUT ---
   const handleLogout = () => {
     localStorage.removeItem('stoq_token');
     localStorage.removeItem('stoq_user_name');
@@ -139,8 +136,6 @@ export default function App() {
     setActiveStoreName('');
     setView('home');
   };
-
-  // --- RENDERIZAÇÃO ---
 
   const commonProps = { 
     user, 
@@ -152,46 +147,20 @@ export default function App() {
     currentTheme: theme
   };
 
-  if (view === 'dashboard') {
-    return <Dashboard {...commonProps} />;
-  }
-
-  if (view === 'products') {
-    return <Products {...commonProps} />;
-  }
-
-  if (view === 'stock') {
-    return <Stock {...commonProps} />;
-  }
-
-  if (view === 'sales') {
-    return <Sales {...commonProps} />;
-  }
-
-  if (view === 'customers') {
-    return <Customers {...commonProps} />;
-  }
-
-  // AQUI ESTAVA FALTANDO: ROTA DE RELATÓRIOS
-  if (view === 'reports') {
-    return <Reports {...commonProps} />;
-  }
-
-  if (view === 'team') {
-    return <Team {...commonProps} />;
-  }
-
-  if (view === 'settings') {
-    return <Settings {...commonProps} />;
-  }
-
-  if (view === 'subscription') {
-    return <Subscription {...commonProps} />;
-  }
-
-  if (view === 'admin') {
-    return <SuperAdmin {...commonProps} />;
-  }
+  // --- RENDERIZAÇÃO DAS TELAS ---
+  if (view === 'dashboard') return <Dashboard {...commonProps} />;
+  if (view === 'products') return <Products {...commonProps} />;
+  if (view === 'stock') return <Stock {...commonProps} />;
+  if (view === 'sales') return <Sales {...commonProps} />;
+  if (view === 'customers') return <Customers {...commonProps} />;
+  if (view === 'reports') return <Reports {...commonProps} />;
+  if (view === 'team') return <Team {...commonProps} />;
+  if (view === 'settings') return <Settings {...commonProps} />;
+  if (view === 'subscription') return <Subscription {...commonProps} />;
+  if (view === 'admin') return <SuperAdmin {...commonProps} />;
+  
+  // (3) E AQUI ESTÁ O BLOCO QUE FALTAVA:
+  if (view === 'cashflow') return <CashFlow {...commonProps} />;
 
   return (
     <div className="w-full min-h-screen">

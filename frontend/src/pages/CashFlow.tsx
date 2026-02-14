@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Lock, TrendingUp, TrendingDown, AlertTriangle, Calculator, CheckCircle, X, ArrowRight, History, Wallet, Calendar } from 'lucide-react';
+import { Lock, TrendingUp, TrendingDown, AlertTriangle, Calculator, CheckCircle, X, History, Wallet, EyeOff } from 'lucide-react';
 
 export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   const [activeTab, setActiveTab] = useState<'CURRENT' | 'HISTORY'>('CURRENT');
@@ -24,7 +24,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const [showBleedModal, setShowBleedModal] = useState(false);
   const [showSupplyModal, setShowSupplyModal] = useState(false);
   const [showCloseConfirmation, setShowCloseConfirmation] = useState(false);
-  const [modalType, setModalType] = useState(''); // 'BLEED' ou 'SUPPLY'
+  const [modalType, setModalType] = useState<'BLEED' | 'SUPPLY'>('BLEED'); 
   const [moveValue, setMoveValue] = useState('');
   const [moveDesc, setMoveDesc] = useState('');
 
@@ -43,45 +43,52 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
     try {
         // 1. Status do Caixa Atual
-        const sessionRes = await fetch('http://localhost:3333/cashflow/current', { headers });
+        const sessionRes = await fetch('http://localhost:3333/cashflow/status', { headers });
         const session = await sessionRes.json();
         
-        if (session && session.id && session.status !== 'FINISHED' && session.status !== 'CLOSED') {
-            setStatus(session.status);
-            setOpeningBalance(Number(session.openingBalance));
-            
-            const movs = session.movements || [];
-            setBleeds(movs.filter((m: any) => m.type === 'BLEED'));
-            setSupplies(movs.filter((m: any) => m.type === 'SUPPLY'));
+        if (session && session.status === 'OPEN') {
+            setStatus('OPEN');
+            setOpeningBalance(Number(session.data.openingBalance));
+            setBleeds(session.data.bleeds || []);
+            setSupplies(session.data.supplies || []);
         } else {
             setStatus('CLOSED');
         }
 
-        // 2. Resumo de Vendas do Dia (Backend soma vendas desde 00:00)
+        // 2. Resumo de Vendas do Dia
         const summaryRes = await fetch('http://localhost:3333/cashflow/summary', { headers });
         const summaryData = await summaryRes.json();
-        if (summaryData.summary) {
-            setSalesSummary({
-                MONEY: Number(summaryData.summary.MONEY || 0),
-                CREDIT_CARD: Number(summaryData.summary.CREDIT_CARD || 0) + Number(summaryData.summary.DEBIT_CARD || 0),
-                PIX: Number(summaryData.summary.PIX || 0),
-                CREDIT_STORE: Number(summaryData.summary.CREDIT_STORE || 0)
-            });
-        }
+        const data = summaryData.summary || summaryData; 
+        
+        setSalesSummary({
+            MONEY: Number(data.MONEY || 0),
+            CREDIT_CARD: Number(data.CREDIT_CARD || 0) + Number(data.DEBIT_CARD || 0),
+            PIX: Number(data.PIX || 0),
+            CREDIT_STORE: Number(data.CREDIT_STORE || 0)
+        });
 
         // 3. Histórico de Fechamentos
         const histRes = await fetch('http://localhost:3333/cashflow/history', { headers });
         const histData = await histRes.json();
-        if (Array.isArray(histData)) setHistoryLog(histData);
+        
+        if (Array.isArray(histData)) {
+            const normalizedHistory = histData.map((h: any) => ({
+                ...h,
+                revenue: Number(h.revenue ?? h.totalRevenue ?? 0),
+                counted: Number(h.counted ?? h.countedMoney ?? 0),
+                openingBalance: Number(h.openingBalance ?? 0),
+                expected: Number(h.expected ?? (Number(h.openingBalance) + Number(h.totalRevenue) + Number(h.totalSupply) - Number(h.totalBleed))),
+                diff: Number(h.diff ?? h.difference ?? 0)
+            }));
+            setHistoryLog(normalizedHistory);
+        }
 
     } catch (error) { console.error("Erro ao carregar dados", error); }
   };
 
-  // --- CÁLCULO EM TEMPO REAL (Visual) ---
+  // --- CÁLCULO EM TEMPO REAL ---
   const totalBleedsVal = bleeds.reduce((acc, curr) => acc + Number(curr.value), 0);
   const totalSuppliesVal = supplies.reduce((acc, curr) => acc + Number(curr.value), 0);
-  
-  // A LÓGICA CORRETA: Fundo + Vendas em Dinheiro (Do dia todo) + Suprimentos - Sangrias
   const currentExpected = openingBalance + salesSummary.MONEY + totalSuppliesVal - totalBleedsVal;
 
   // --- AÇÕES ---
@@ -108,28 +115,26 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
     await fetch('http://localhost:3333/cashflow/movement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ type: modalType, value: val, desc: moveDesc })
+        body: JSON.stringify({ type: modalType, value: val, description: moveDesc }) 
     });
 
     setMoveValue(''); setMoveDesc(''); setShowBleedModal(false); setShowSupplyModal(false);
     fetchData();
   };
 
-  // 1. Usuário clica em "Encerrar" na conferência -> Mostra resumo
   const handlePreFinish = () => {
     if (!countedMoney) return;
     const val = parseFloat(countedMoney.replace(',', '.'));
-    const diff = val - currentExpected; // Cálculo visual para o usuário confirmar
+    const diff = val - currentExpected; // Calcula a diferença visualmente
     setServerDifference(diff);
     setShowCloseConfirmation(true);
   };
 
-  // 2. Usuário confirma -> Envia pro backend fechar de verdade
   const confirmFinish = async () => {
     const token = localStorage.getItem('stoq_token');
     const val = parseFloat(countedMoney.replace(',', '.'));
 
-    const res = await fetch('http://localhost:3333/cashflow/finish', {
+    const res = await fetch('http://localhost:3333/cashflow/close', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ countedMoney: val })
@@ -138,7 +143,6 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const data = await res.json();
 
     setShowCloseConfirmation(false);
-    // Usa a diferença real calculada pelo servidor
     setServerDifference(Number(data.difference));
     setStatus('FINISHED'); 
     fetchData();
@@ -148,7 +152,6 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const token = localStorage.getItem('stoq_token');
     await fetch('http://localhost:3333/cashflow/reset', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
     
-    // Reseta estados locais
     setOpeningBalance(0);
     setBleeds([]);
     setSupplies([]);
@@ -183,11 +186,25 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
                 {activeTab === 'CURRENT' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4">
+                        
                         {/* HEADER DE STATUS */}
                         {status !== 'CLOSED' && status !== 'FINISHED' && (
                             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mb-6 flex justify-between items-center">
-                                <div><span className="text-[10px] font-bold text-slate-400 uppercase">Status</span><h2 className="text-2xl font-black text-green-600 flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"/>ABERTO</h2></div>
-                                <div className="text-right"><span className="text-[10px] font-bold text-slate-400 uppercase">Total na Gaveta (Sistema)</span><h2 className="text-3xl font-black text-slate-800">{formatMoney(currentExpected)}</h2></div>
+                                <div>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Status</span>
+                                    <h2 className="text-2xl font-black text-green-600 flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"/>
+                                        {status === 'CONFERENCE' ? 'EM CONFERÊNCIA' : 'ABERTO'}
+                                    </h2>
+                                </div>
+                                
+                                {/* Oculta o valor durante a conferência para ser "Cega", mas mostra quando Aberto */}
+                                {status !== 'CONFERENCE' && (
+                                    <div className="text-right">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Total na Gaveta (Sistema)</span>
+                                        <h2 className="text-3xl font-black text-slate-800">{formatMoney(currentExpected)}</h2>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -264,24 +281,28 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                             </div>
                         )}
 
-                        {/* 3. CONFERENCIA */}
+                        {/* 3. CONFERENCIA (CEGA) */}
                         {status === 'CONFERENCE' && (
-                            <div className="max-w-lg mx-auto bg-white p-8 rounded-3xl shadow-xl border border-slate-200 mt-10 animate-in zoom-in">
-                                <h2 className="text-xl font-black text-slate-800 text-center mb-6">Conferência de Valores</h2>
-                                <div className="mb-6">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">Valor Contado na Gaveta</label>
-                                    <input autoFocus type="number" value={countedMoney} onChange={e => setCountedMoney(e.target.value)} className="w-full text-4xl font-black text-slate-800 bg-transparent border-b-2 border-slate-200 focus:border-blue-500 outline-none py-2 text-center" placeholder="0,00" />
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded-xl mb-6 flex justify-between items-center">
-                                    <span className="text-sm font-bold text-slate-500">O sistema espera:</span>
-                                    <div className="group relative cursor-help">
-                                        <span className="text-xl font-black text-slate-700 blur-sm group-hover:blur-none transition">{formatMoney(currentExpected)}</span>
-                                        <span className="text-[10px] text-slate-400 absolute -top-3 left-0 opacity-0 group-hover:opacity-100 transition">Espiar</span>
+                            <div className="max-w-lg mx-auto bg-white p-10 rounded-3xl shadow-2xl border border-slate-200 mt-10 animate-in zoom-in">
+                                <div className="flex justify-center mb-6">
+                                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-500">
+                                        <EyeOff size={32}/>
                                     </div>
                                 </div>
+                                <h2 className="text-2xl font-black text-slate-800 text-center mb-2">Conferência Cega</h2>
+                                <p className="text-center text-slate-500 text-sm mb-8">Conte o dinheiro físico na gaveta e digite abaixo. O sistema só revelará a diferença após a confirmação.</p>
+                                
+                                <div className="mb-8">
+                                    <label className="text-xs font-bold text-slate-400 uppercase text-center block mb-2">Valor na Gaveta</label>
+                                    <div className="relative">
+                                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-400 pl-4">R$</span>
+                                        <input autoFocus type="number" value={countedMoney} onChange={e => setCountedMoney(e.target.value)} className="w-full text-5xl font-black text-slate-800 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-slate-800 focus:bg-white outline-none py-6 pl-12 pr-4 text-center transition" placeholder="0,00" />
+                                    </div>
+                                </div>
+                                
                                 <div className="flex gap-3">
-                                    <button onClick={() => setStatus('OPEN')} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl">Cancelar</button>
-                                    <button onClick={handlePreFinish} disabled={!countedMoney} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg disabled:opacity-50 transition">ENCERRAR</button>
+                                    <button onClick={() => setStatus('OPEN')} className="flex-1 py-4 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition">Voltar</button>
+                                    <button onClick={handlePreFinish} disabled={!countedMoney} className="flex-1 bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50 transition">CONFERIR</button>
                                 </div>
                             </div>
                         )}
@@ -293,7 +314,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                     {Math.abs(serverDifference) < 0.1 ? <CheckCircle size={48} /> : <AlertTriangle size={48} />}
                                 </div>
                                 <h2 className="text-2xl font-black text-slate-800 mb-2">Caixa Encerrado</h2>
-                                <p className="text-slate-500 mb-6">Diferença Final: <span className={`font-black ${serverDifference === 0 ? 'text-green-600' : 'text-red-600'}`}>{formatMoney(serverDifference)}</span></p>
+                                <p className="text-slate-500 mb-6">Diferença Final: <span className={`font-black text-xl ${serverDifference === 0 ? 'text-green-600' : 'text-red-600'}`}>{formatMoney(serverDifference)}</span></p>
                                 <button onClick={handleReset} className="bg-slate-800 hover:bg-black text-white px-8 py-3 rounded-xl font-bold w-full shadow-lg transition">NOVO DIA</button>
                             </div>
                         )}
@@ -326,7 +347,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                         </td>
                                         <td className="p-4 text-sm font-bold text-blue-600">{formatMoney(Number(h.counted))}</td>
                                         <td className="p-4 text-center">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${Math.abs(Number(h.diff)) < 0.1 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            <span className={`px-2 py-1 rounded text-xs font-bold ${Math.abs(Number(h.diff)) < 0.1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {formatMoney(Number(h.diff))}
                                             </span>
                                         </td>
@@ -355,20 +376,33 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
             </div>
         )}
 
-        {/* MODAL CONFIRMAÇÃO FINAL */}
+        {/* MODAL CONFIRMAÇÃO FINAL - COM EXIBIÇÃO DA DIFERENÇA */}
         {showCloseConfirmation && (
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in zoom-in">
                 <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center">
                     <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${Math.abs(serverDifference) < 0.1 ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
                         {Math.abs(serverDifference) < 0.1 ? <CheckCircle size={40}/> : <AlertTriangle size={40}/>}
                     </div>
-                    <h3 className="text-xl font-black text-slate-800 mb-2">Confirmar Fechamento?</h3>
-                    <p className="text-slate-500 mb-6 text-sm">
-                        Diferença calculada: <strong className={serverDifference===0?'text-green-600':'text-red-600'}>{formatMoney(serverDifference)}</strong>
-                    </p>
+                    <h3 className="text-xl font-black text-slate-800 mb-4">Confirmar Fechamento?</h3>
+                    
+                    <div className="bg-slate-50 p-4 rounded-xl mb-6 text-left">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-slate-500 text-sm">Valor Contado:</span>
+                            <span className="font-bold text-slate-800">{formatMoney(Number(countedMoney))}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                            <span className="text-slate-500 text-sm">Resultado:</span>
+                            <span className={`font-black ${Math.abs(serverDifference) < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
+                                {Math.abs(serverDifference) < 0.1 ? 'Caixa Batendo' : 
+                                 serverDifference > 0 ? `Sobra de ${formatMoney(serverDifference)}` : 
+                                 `Falta de ${formatMoney(Math.abs(serverDifference))}`}
+                            </span>
+                        </div>
+                    </div>
+
                     <div className="flex gap-3">
-                        <button onClick={()=>setShowCloseConfirmation(false)} className="flex-1 py-3 font-bold text-slate-500 bg-slate-100 rounded-xl">Voltar</button>
-                        <button onClick={confirmFinish} className="flex-1 py-3 font-bold text-white bg-slate-900 rounded-xl shadow-lg">Confirmar</button>
+                        <button onClick={()=>setShowCloseConfirmation(false)} className="flex-1 py-3 font-bold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition">Recontar</button>
+                        <button onClick={confirmFinish} className="flex-1 py-3 font-bold text-white bg-slate-900 rounded-xl shadow-lg hover:bg-black transition">Confirmar</button>
                     </div>
                 </div>
             </div>

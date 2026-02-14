@@ -36,6 +36,9 @@ model Store {
   sales          Sale[]
   stockEntries   StockEntry[]
   customers      Customer[]
+  
+  // --- A LINHA QUE FALTAVA ---
+  cashFlows      CashFlow[]
 }
 
 model StoreUser {
@@ -144,6 +147,40 @@ model SaleItem {
   
   sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// --- FLUXO DE CAIXA ---
+
+model CashFlow {
+  id             String    @id @default(uuid())
+  storeId        String
+  operator       String
+  status         String    @default("CLOSED")
+  
+  openingBalance Decimal   @default(0)
+  totalRevenue   Decimal   @default(0)
+  totalBleed     Decimal   @default(0)
+  totalSupply    Decimal   @default(0)
+  
+  countedMoney   Decimal?
+  difference     Decimal?
+  
+  startedAt      DateTime  @default(now())
+  closedAt       DateTime?
+
+  movements      CashFlowMovement[]
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+model CashFlowMovement {
+  id          String   @id @default(uuid())
+  cashFlowId  String
+  type        String
+  value       Decimal
+  description String?
+  createdAt   DateTime @default(now())
+
+  cashFlow    CashFlow @relation(fields: [cashFlowId], references: [id], onDelete: Cascade)
 }
 
 // --- ENUMS ---

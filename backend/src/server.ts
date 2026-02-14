@@ -15,6 +15,7 @@ import dashboardRoutes from './routes/dashboard.routes';
 import statsRoutes from './routes/stats.routes';
 import reportsRoutes from './routes/reports.routes'; // <--- (1) IMPORTEI AQUI
 
+
 const app = express();
 const PORT = 3333;
 const prisma = new PrismaClient(); // Para o setup inicial
