@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Limpamos as margens e garantimos que o sistema ocupe a tela toda */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  /* Removemos o 'display: flex' padrão que estava centralizando tudo errado */
+}
+
+body {
+  /* Definimos a cor de fundo padrão como branca e a fonte moderna */
+  background-color: #ffffff;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Isso garante que imagens e ícones não quebrem o layout */
+img, svg {
+  display: block;
+}

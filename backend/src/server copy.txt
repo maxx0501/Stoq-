@@ -1,0 +1,730 @@
+import express from 'express';
+import cors from 'cors';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { MercadoPagoConfig, Payment } from 'mercadopago';
+
+const app = express();
+const prisma = new PrismaClient(); 
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors());
+
+// CONFIGURAÇÃO DO MERCADO PAGO
+// ⚠️ IMPORTANTE: Você precisa pegar seu ACCESS TOKEN de teste em:
+// https://www.mercadopago.com.br/developers/panel
+const client = new MercadoPagoConfig({ accessToken: 'APP_USR-3039873080458856-021406-dda154d7d282df302aad727b4724b807-167654703' });
+const payment = new Payment(client);
+
+/// 1. GERAR PIX (MODO PRODUÇÃO)
+app.post('/payments/pix', async (req, res) => {
+  try {
+    const { amount, description, email } = req.body;
+
+    const body = {
+      transaction_amount: Number(amount),
+      description: description || 'Venda Stoq+',
+      payment_method_id: 'pix',
+      payer: {
+        // O MP exige um email. Se não tiver cliente selecionado, usa um genérico.
+        email: email || 'cliente@generico.com' 
+      },
+    };
+
+    const result = await payment.create({ body });
+    
+    return res.json({
+      id: result.id,
+      status: result.status,
+      qr_code: result.point_of_interaction?.transaction_data?.qr_code,
+      qr_code_base64: result.point_of_interaction?.transaction_data?.qr_code_base64
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Erro ao gerar Pix" });
+  }
+});
+
+// 2. CHECAR STATUS (CONSULTA REAL)
+app.get('/payments/pix/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Consulta o Mercado Pago de verdade
+    const result = await payment.get({ id });
+    
+    return res.json({
+      id: result.id,
+      status: result.status, // Se pagou, volta 'approved'
+      status_detail: result.status_detail
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Erro ao consultar" });
+  }
+});
+
+// 2. ROTA PARA CHECAR STATUS (POLLING)
+// O front vai chamar isso a cada 3 segundos pra saber se caiu
+app.get('/payments/pix/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await payment.get({ id });
+    
+    return res.json({
+      id: result.id,
+      status: result.status, // 'approved', 'pending', etc.
+      status_detail: result.status_detail
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Erro ao consultar pagamento" });
+  }
+});
+
+
+// --- SCRIPT DE INICIALIZAÇÃO: CRIAR/ATUALIZAR CEO ---
+const setupSuperAdmin = async () => {
+  const email = 'mateused0501@gmail.com';
+  const password = 'StoqMaster#2026!';
+  
+  try {
+    const hash = await bcrypt.hash(password, 10);
+    const existing = await prisma.user.findUnique({ where: { email } });
+    
+    if (!existing) {
+      console.log(`👑 Criando Super Admin: ${email}`);
+      const user = await prisma.user.create({
+        data: { name: 'Mateus (CEO)', email, passwordHash: hash, isSuperAdmin: true, avatarUrl: '' }
+      });
+      const store = await prisma.store.create({ data: { name: 'Stoq HQ', plan: 'PRO' } });
+      await prisma.storeUser.create({ data: { userId: user.id, storeId: store.id, role: 'OWNER' } });
+    } else {
+      console.log(`👑 Atualizando credenciais do Super Admin: ${email}`);
+      await prisma.user.update({ where: { id: existing.id }, data: { isSuperAdmin: true, passwordHash: hash } });
+    }
+  } catch (e) { console.error("Erro ao configurar admin:", e); }
+};
+setupSuperAdmin();
+
+// --- 1. LOGIN ---
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await prisma.user.findUnique({ where: { email }, include: { memberships: true } });
+    if (!user) return res.status(400).json({ error: "Usuário não encontrado." });
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) return res.status(400).json({ error: "Senha incorreta." });
+    const membership = user.memberships[0];
+    const store = membership ? await prisma.store.findUnique({ where: { id: membership.storeId } }) : null;
+    const token = jwt.sign(
+      { userId: user.id, storeId: membership?.storeId, role: membership?.role, isSuperAdmin: user.isSuperAdmin, canSell: membership?.canSell, canManageProducts: membership?.canManageProducts }, 
+      process.env.JWT_SECRET || 'segredo-padrao', { expiresIn: '7d' }
+    );
+    return res.json({ user: { name: user.name, email: user.email, avatarUrl: user.avatarUrl, isSuperAdmin: user.isSuperAdmin }, storeName: store?.name || 'Painel Admin', token });
+  } catch (error) { return res.status(500).json({ error: "Erro interno no login." }); }
+});
+
+const getUserIdFromToken = (req: express.Request) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) throw new Error('Sem token');
+  const token = authHeader.split(' ')[1];
+  return jwt.verify(token, process.env.JWT_SECRET || 'segredo-padrao') as any;
+};
+
+// --- ROTAS DO SUPER ADMIN ---
+app.get('/admin/dashboard', async (req, res) => {
+  try {
+    const requester = getUserIdFromToken(req);
+    const adminUser = await prisma.user.findUnique({ where: { id: requester.userId } });
+    if (!adminUser?.isSuperAdmin) return res.status(403).json({ error: "Acesso restrito ao CEO." });
+    const totalStores = await prisma.store.count();
+    const totalUsers = await prisma.user.count();
+    const proStores = await prisma.store.count({ where: { plan: 'PRO' } });
+    const mrr = proStores * 49; 
+    const stores = await prisma.store.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { products: true, sales: true, memberships: true } }, memberships: { where: { role: 'OWNER' }, include: { user: { select: { name: true, email: true } } } } }
+    });
+    const formattedStores = stores.map(s => ({
+        id: s.id, name: s.name, plan: s.plan, createdAt: s.createdAt,
+        ownerName: s.memberships[0]?.user.name || 'Sem dono', ownerEmail: s.memberships[0]?.user.email || '-',
+        stats: { products: s._count.products, sales: s._count.sales, users: s._count.memberships }
+    }));
+    return res.json({ metrics: { totalStores, totalUsers, mrr, proCount: proStores }, stores: formattedStores });
+  } catch (error) { return res.status(500).json({ error: "Erro admin." }); }
+});
+
+app.delete('/admin/store/:id', async (req, res) => {
+    try {
+        const requester = getUserIdFromToken(req);
+        const adminUser = await prisma.user.findUnique({ where: { id: requester.userId } });
+        if (!adminUser?.isSuperAdmin) return res.status(403).json({ error: "Sem permissão." });
+        await prisma.store.delete({ where: { id: req.params.id } });
+        return res.json({ message: "Loja deletada." });
+    } catch (error) { return res.status(500).json({ error: "Erro ao deletar." }); }
+});
+
+// --- GESTÃO DE EQUIPE ---
+app.get('/sellers', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    if (user.role === 'SELLER') return res.status(403).json({ error: "Acesso negado." });
+    const sellers = await prisma.storeUser.findMany({ where: { storeId: user.storeId, NOT: { role: 'OWNER' } }, include: { user: true } });
+    const formatted = sellers.map(s => ({ id: s.id, name: s.user.name, email: s.user.email, role: s.role, canSell: s.canSell, canManageProducts: s.canManageProducts }));
+    return res.json(formatted);
+  } catch (error) { return res.status(500).json({ error: "Erro ao buscar equipe." }); }
+});
+
+app.post('/sellers', async (req, res) => {
+  try {
+    const requester = getUserIdFromToken(req);
+    if (requester.role === 'SELLER') return res.status(403).json({ error: "Sem permissão." });
+    const { name, email, password, role, canSell, canManageProducts } = req.body;
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) return res.status(400).json({ error: "E-mail já cadastrado." });
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({ data: { name, email, passwordHash } });
+      await tx.storeUser.create({ data: { userId: newUser.id, storeId: requester.storeId, role: role || 'SELLER', canSell: role === 'MANAGER' ? true : (canSell || false), canManageProducts: role === 'MANAGER' ? true : (canManageProducts || false) } });
+    });
+    return res.status(201).json({ message: "Membro criado!" });
+  } catch (error) { return res.status(500).json({ error: "Erro ao criar membro." }); }
+});
+
+app.delete('/sellers/:id', async (req, res) => {
+  try {
+    const requester = getUserIdFromToken(req);
+    if (requester.role !== 'OWNER') return res.status(403).json({ error: "Apenas o dono pode demitir." });
+    const { id } = req.params;
+    const membership = await prisma.storeUser.findUnique({ where: { id } });
+    if (!membership) return res.status(404).json({ error: "Vendedor não encontrado." });
+    await prisma.$transaction(async (tx) => { await tx.storeUser.delete({ where: { id } }); await tx.user.delete({ where: { id: membership.userId } }); });
+    return res.status(204).send();
+  } catch (error) { return res.status(500).json({ error: "Erro ao demitir." }); }
+});
+
+app.put('/team/member/:id', async (req, res) => {
+  try {
+    const requester = getUserIdFromToken(req);
+    if (requester.role !== 'OWNER') return res.status(403).json({ error: "Apenas o dono pode editar permissões." });
+    const { id } = req.params; const { role, canSell, canManageProducts } = req.body;
+    await prisma.storeUser.update({ where: { id }, data: { role, canSell: role === 'MANAGER' ? true : canSell, canManageProducts: role === 'MANAGER' ? true : canManageProducts } });
+    return res.json({ message: "Permissões atualizadas!" });
+  } catch (error) { return res.status(500).json({ error: "Erro ao atualizar." }); }
+});
+
+app.get('/team/analytics', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const teamStats = await prisma.user.findMany({ where: { memberships: { some: { storeId: user.storeId } } }, select: { id: true, name: true, sales: { where: { storeId: user.storeId }, select: { total: true } } } });
+    const ranking = teamStats.map(u => ({ name: u.name, total: u.sales.reduce((acc, s) => acc + Number(s.total), 0) })).sort((a, b) => b.total - a.total).slice(0, 5);
+    const recentSales = await prisma.sale.findMany({ where: { storeId: user.storeId }, take: 10, orderBy: { createdAt: 'desc' }, include: { user: { select: { name: true } } } });
+    const recentStock = await prisma.stockEntry.findMany({ where: { storeId: user.storeId }, take: 10, orderBy: { createdAt: 'desc' }, include: { product: { select: { name: true } }, user: { select: { name: true } } } });
+    const activityLog = [ ...recentSales.map(s => ({ id: s.id, type: 'SALE', user: s.user?.name || 'Sistema', detail: `Vendeu R$ ${Number(s.total).toFixed(2)}`, date: s.createdAt })), ...recentStock.map(s => ({ id: s.id, type: s.entryType === 'LOSS' ? 'STOCK_LOSS' : 'STOCK_ENTRY', user: s.user?.name || 'Sistema', detail: `${s.entryType === 'LOSS' ? 'Baixou' : 'Recebeu'} ${s.quantity}x ${s.product?.name}`, date: s.createdAt })) ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 15);
+    return res.json({ ranking, activityLog });
+  } catch (error) { return res.status(500).json({ error: "Erro analytics equipe" }); }
+});
+
+// --- PRODUTOS & VENDAS ---
+app.get('/products', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const products = await prisma.product.findMany({ where: { storeId: user.storeId }, orderBy: { id: 'desc' } });
+    return res.json(products);
+  } catch (error) { return res.status(401).json({ error: "Não autorizado." }); }
+});
+
+app.post('/products', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    if (user.role !== 'OWNER' && !user.canManageProducts) return res.status(403).json({ error: "Sem permissão." });
+    const { name, price, stock, description, category, costPrice, minStock, imageUrl, isVisible } = req.body;
+    const product = await prisma.product.create({ data: { name, price: Number(price), stock: Number(stock), storeId: user.storeId, description: description || '', category: category || 'Geral', imageUrl: imageUrl || '', costPrice: costPrice ? Number(costPrice) : 0, minStock: minStock ? Number(minStock) : 0, isVisible: isVisible !== undefined ? isVisible : true } });
+    return res.status(201).json(product);
+  } catch (error) { return res.status(401).json({ error: "Erro ao criar." }); }
+});
+
+app.put('/products/:id', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    if (user.role !== 'OWNER' && !user.canManageProducts) return res.status(403).json({ error: "Sem permissão." });
+    const { id } = req.params; const { name, price, stock, description, category, costPrice, minStock, imageUrl, isVisible } = req.body;
+    await prisma.product.updateMany({ where: { id, storeId: user.storeId }, data: { name, description, category, imageUrl, isVisible, price: Number(price), stock: Number(stock), costPrice: Number(costPrice), minStock: Number(minStock) } });
+    return res.json({ ok: true });
+  } catch (error) { return res.status(500).json({ error: "Erro." }); }
+});
+
+app.delete('/products/:id', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    if (user.role !== 'OWNER' && !user.canManageProducts) return res.status(403).json({ error: "Sem permissão." });
+    const { id } = req.params; await prisma.product.deleteMany({ where: { id, storeId: user.storeId } });
+    return res.status(204).send();
+  } catch (error) { return res.status(500).json({ error: "Erro." }); }
+});
+
+// --- 4. VENDAS (COM FIADO E CLIENTE) ---
+app.post('/sales', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    if (user.role !== 'OWNER' && !user.canSell) return res.status(403).json({ error: "Sem permissão de venda." });
+    
+    // Recebe novos campos: customerId e paymentMethod
+    const { items, customerId, paymentMethod } = req.body; 
+    
+    if (!items || items.length === 0) return res.status(400).json({ error: "Carrinho vazio." });
+
+    // Lógica do Fiado
+    let status = 'PAID';
+    let dueDate = null;
+
+    if (paymentMethod === 'CREDIT_STORE') {
+        if (!customerId) return res.status(400).json({ error: "Para vender fiado, selecione um cliente!" });
+        status = 'PENDING';
+        
+        // Define vencimento para 30 dias a partir de hoje
+        const date = new Date();
+        date.setDate(date.getDate() + 30);
+        dueDate = date;
+    }
+
+    const sale = await prisma.$transaction(async (tx) => {
+      let total = 0;
+      
+      // 1. Valida Estoque e Calcula Total
+      for (const item of items) {
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (!product || product.storeId !== user.storeId) throw new Error("Produto inválido.");
+        if (product.stock < item.quantity) throw new Error(`Estoque insuficiente: ${product.name}`);
+        total += Number(product.price) * item.quantity;
+      }
+
+      // 2. Cria a Venda
+      const newSale = await tx.sale.create({
+        data: {
+          storeId: user.storeId,
+          userId: user.userId, // Quem vendeu (se for admin, pega do token)
+          customerId: customerId || null, // Vincula cliente
+          total,
+          paymentMethod: paymentMethod || 'MONEY',
+          status: status as any,
+          dueDate: dueDate
+        }
+      });
+
+      // 3. Cria Itens e Baixa Estoque
+      for (const item of items) {
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        await tx.saleItem.create({ data: { saleId: newSale.id, productId: item.productId, quantity: item.quantity, price: product!.price } });
+        await tx.product.update({ where: { id: item.productId }, data: { stock: { decrement: item.quantity } } });
+      }
+      
+      return newSale;
+    });
+
+    return res.status(201).json(sale);
+  } catch (error: any) { 
+      return res.status(400).json({ error: error.message || "Erro na venda." }); 
+  }
+});
+
+// --- ROTA EXTRA: BUSCAR DÍVIDAS DE UM CLIENTE ---
+app.get('/customers/:id/debts', async (req, res) => {
+    try {
+        const user = getUserIdFromToken(req);
+        const { id } = req.params;
+
+        const debts = await prisma.sale.findMany({
+            where: { 
+                storeId: user.storeId, 
+                customerId: id, 
+                paymentMethod: 'CREDIT_STORE',
+                status: 'PENDING'
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Calcula Juros (Simulação: 10% se atrasar)
+        const debtsWithInterest = debts.map(sale => {
+            const today = new Date();
+            const due = new Date(sale.dueDate!);
+            const isLate = today > due;
+            
+            // Juros simples de 10% fixo se estiver atrasado (pode refinar depois)
+            const interest = isLate ? (Number(sale.total) * 0.10) : 0; 
+            
+            return {
+                ...sale,
+                isLate,
+                interest,
+                finalTotal: Number(sale.total) + interest
+            };
+        });
+
+        return res.json(debtsWithInterest);
+    } catch (error) { return res.status(500).json({ error: "Erro ao buscar dívidas." }); }
+});
+
+// --- CASHFLOW: Sessões e Movimentações ---
+app.get('/cashflow/current', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const session = await prisma.cashSession.findFirst({ where: { storeId: user.storeId, OR: [{ status: 'OPEN' }, { status: 'CONFERENCE' }] }, orderBy: { startedAt: 'desc' }, include: { movements: true } });
+    if (!session) return res.json({});
+    return res.json(session);
+  } catch (error) { return res.status(500).json({ error: 'Erro ao buscar sessão de caixa.' }); }
+});
+
+app.post('/cashflow/open', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { openingBalance } = req.body;
+    // Fecha sessões abertas antigas
+    await prisma.cashSession.updateMany({ where: { storeId: user.storeId, OR: [{ status: 'OPEN' }, { status: 'CONFERENCE' }] }, data: { status: 'CLOSED', closedAt: new Date() } });
+    const session = await prisma.cashSession.create({ data: { storeId: user.storeId, status: 'OPEN', openingBalance: Number(openingBalance) } });
+    // cria um movimento OPEN para registrar operador
+    try {
+      const operator = await prisma.user.findUnique({ where: { id: user.userId } });
+      await prisma.cashMovement.create({ data: { sessionId: session.id, type: 'OPEN', value: Number(openingBalance || 0), desc: operator?.name || '' } });
+    } catch (e) { /* não crítico */ }
+    return res.status(201).json(session);
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao abrir caixa.' }); }
+});
+
+app.post('/cashflow/movement', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { type, value, desc } = req.body;
+    const session = await prisma.cashSession.findFirst({ where: { storeId: user.storeId, OR: [{ status: 'OPEN' }, { status: 'CONFERENCE' }] }, orderBy: { startedAt: 'desc' } });
+    if (!session) return res.status(400).json({ error: 'Nenhuma sessão de caixa aberta.' });
+    const movement = await prisma.cashMovement.create({ data: { sessionId: session.id, type, value: Number(value), desc: desc || '' } });
+    return res.status(201).json(movement);
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao criar movimentação.' }); }
+});
+
+app.post('/cashflow/finish', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { countedMoney } = req.body;
+    const session = await prisma.cashSession.findFirst({ where: { storeId: user.storeId, OR: [{ status: 'OPEN' }, { status: 'CONFERENCE' }] }, orderBy: { startedAt: 'desc' }, include: { movements: true } });
+    if (!session) return res.status(400).json({ error: 'Nenhuma sessão de caixa aberta.' });
+
+    const movements = session.movements || [];
+    const totalBleeds = movements.filter(m => m.type === 'BLEED').reduce((acc, m) => acc + Number(m.value), 0);
+    const totalSupplies = movements.filter(m => m.type === 'SUPPLY').reduce((acc, m) => acc + Number(m.value), 0);
+
+    // Soma vendas em dinheiro dentro do período da sessão
+    const start = new Date(session.startedAt);
+    const end = new Date();
+    const salesSum = await prisma.sale.aggregate({
+      _sum: { total: true },
+      where: {
+        storeId: user.storeId,
+        paymentMethod: 'MONEY',
+        createdAt: { gte: start, lte: end }
+      }
+    });
+    const moneyTotal = Number(salesSum._sum.total || 0);
+
+    const expected = Number(session.openingBalance) + moneyTotal + totalSupplies - totalBleeds;
+    const diff = Number(countedMoney) - expected;
+
+    const updated = await prisma.cashSession.update({ where: { id: session.id }, data: { countedMoney: Number(countedMoney), difference: diff, status: 'FINISHED', closedAt: new Date(), totalRevenue: moneyTotal, totalBleed: totalBleeds, totalSupply: totalSupplies } });
+    return res.json({ ...updated, theoreticalBalance: expected });
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao finalizar conferência.' }); }
+});
+
+app.post('/cashflow/reset', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    // Fecha sessões abertas/pendentes, mas NÃO remove o histórico
+    await prisma.cashSession.updateMany({ where: { storeId: user.storeId, OR: [{ status: 'OPEN' }, { status: 'CONFERENCE' }] }, data: { status: 'CLOSED', closedAt: new Date() } });
+    return res.json({ ok: true });
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao resetar caixa.' }); }
+});
+
+// --- CASHFLOW: Resumo diário e histórico de sessões ---
+app.get('/cashflow/summary', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const sales = await prisma.sale.findMany({ where: { storeId: user.storeId, createdAt: { gte: today } } });
+    const summary = { MONEY: 0, CREDIT_CARD: 0, DEBIT_CARD: 0, PIX: 0, CREDIT_STORE: 0 } as any;
+    for (const s of sales) {
+      const method = String(s.paymentMethod);
+      summary[method] = (summary[method] || 0) + Number(s.total);
+    }
+    return res.json({ summary });
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao buscar resumo' }); }
+});
+
+app.get('/cashflow/history', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const sessions = await prisma.cashSession.findMany({ where: { storeId: user.storeId }, orderBy: { startedAt: 'desc' }, include: { movements: true } });
+    const now = new Date();
+    const formatted = await Promise.all(sessions.map(async (s) => {
+      const movements = s.movements || [];
+      const openMov = movements.find(m => m.type === 'OPEN');
+      const operator = openMov?.desc || '-';
+      const initialValue = Number(s.openingBalance ?? openMov?.value ?? 0);
+
+      // calcula vendas em dinheiro dentro do período da sessão
+      const start = new Date(s.startedAt);
+      const end = s.closedAt ? new Date(s.closedAt) : now;
+      const salesMoney = await prisma.sale.findMany({ where: { storeId: user.storeId, paymentMethod: 'MONEY', createdAt: { gte: start, lte: end } } });
+      const moneyTotal = salesMoney.reduce((acc, sale) => acc + Number(sale.total), 0);
+
+      const totalBleeds = movements.filter(m => m.type === 'BLEED').reduce((acc, m) => acc + Number(m.value), 0);
+      const totalSupplies = movements.filter(m => m.type === 'SUPPLY').reduce((acc, m) => acc + Number(m.value), 0);
+
+      const expectedValue = initialValue + moneyTotal + totalSupplies - totalBleeds;
+      return {
+        id: s.id,
+        date: s.startedAt,
+        operator,
+        initial: initialValue,
+        expected: expectedValue,
+        counted: Number(s.countedMoney || 0),
+        diff: Number(s.difference || 0),
+        status: s.status
+      };
+    }));
+    return res.json(formatted);
+  } catch (error) { console.error(error); return res.status(500).json({ error: 'Erro ao buscar histórico' }); }
+});
+// --- DASHBOARD & REPORTS ---
+app.get('/dashboard-metrics', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req); const { period } = req.query; const today = new Date(); const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()); const startOfYesterday = new Date(startOfToday); startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    const salesToday = await prisma.sale.findMany({ where: { storeId: user.storeId, createdAt: { gte: startOfToday } }, include: { items: { include: { product: true } } } });
+    const salesYesterday = await prisma.sale.findMany({ where: { storeId: user.storeId, createdAt: { gte: startOfYesterday, lt: startOfToday } }, include: { items: { include: { product: true } } } });
+    const calculateMetrics = (sales: any[]) => { let revenue = 0; let cost = 0; sales.forEach(sale => { revenue += Number(sale.total); sale.items.forEach((item: any) => { cost += Number(item.product.costPrice || 0) * item.quantity; }); }); return { revenue, cost, profit: revenue - cost, count: sales.length }; };
+    const metricsToday = calculateMetrics(salesToday); const metricsYesterday = calculateMetrics(salesYesterday);
+    let chartData = []; const viewMode = (period as string) || '7days'; let startDateGraph, endDateGraph;
+    if (viewMode === 'year') { startDateGraph = new Date(today.getFullYear(), 0, 1); endDateGraph = new Date(today.getFullYear(), 11, 31, 23, 59, 59); } else if (viewMode === 'month') { startDateGraph = new Date(today.getFullYear(), today.getMonth(), 1); endDateGraph = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59); } else { startDateGraph = new Date(today); startDateGraph.setDate(today.getDate() - 6); startDateGraph.setHours(0,0,0,0); endDateGraph = new Date(); }
+    const salesPeriod = await prisma.sale.findMany({ where: { storeId: user.storeId, createdAt: { gte: startDateGraph, lte: endDateGraph } } });
+    const toLocalISO = (date: Date) => { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().split('T')[0]; };
+    if (viewMode === 'year') { for (let i = 0; i < 12; i++) { const d = new Date(today.getFullYear(), i, 1); const monthLabel = d.toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase().replace('.', ''); const monthSales = salesPeriod.filter(s => new Date(s.createdAt).getMonth() === i); const total = monthSales.reduce((acc, s) => acc + Number(s.total), 0); chartData.push({ day: monthLabel, value: total, fullDate: `${today.getFullYear()}-${i+1}` }); } } else if (viewMode === 'month') { const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate(); for (let i = 1; i <= daysInMonth; i++) { const d = new Date(today.getFullYear(), today.getMonth(), i); const label = i.toString(); const targetDateStr = toLocalISO(d); const daySales = salesPeriod.filter(s => toLocalISO(new Date(s.createdAt)) === targetDateStr); const total = daySales.reduce((acc, s) => acc + Number(s.total), 0); chartData.push({ day: label, value: total, fullDate: d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) }); } } else { for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(today.getDate() - i); const label = d.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', ''); const targetDateStr = toLocalISO(d); const daySales = salesPeriod.filter(s => toLocalISO(new Date(s.createdAt)) === targetDateStr); const total = daySales.reduce((acc, s) => acc + Number(s.total), 0); chartData.push({ day: label, value: total, fullDate: d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) }); } }
+    const lowStockCount = await prisma.product.count({ where: { storeId: user.storeId, stock: { lte: 5 } } });
+    const topProductsRaw = await prisma.saleItem.groupBy({ by: ['productId'], _sum: { quantity: true }, where: { sale: { storeId: user.storeId } }, orderBy: { _sum: { quantity: 'desc' } }, take: 4 });
+    const topProducts = await Promise.all(topProductsRaw.map(async (item) => { const p = await prisma.product.findUnique({ where: { id: item.productId } }); return { name: p?.name, quantity: item._sum.quantity, price: p?.price, imageUrl: p?.imageUrl }; }));
+    const recentSales = await prisma.sale.findMany({ where: { storeId: user.storeId }, take: 7, orderBy: { createdAt: 'desc' }, include: { items: { include: { product: true } }, user: { select: { name: true } } } });
+    const sellerRanking = await prisma.user.findMany({ where: { memberships: { some: { storeId: user.storeId } } }, select: { name: true, sales: { where: { createdAt: { gte: startOfToday } }, select: { total: true } } } });
+    const formattedSellers = sellerRanking.map(s => ({ name: s.name, total: s.sales.reduce((acc, sale) => acc + Number(sale.total), 0) })).sort((a, b) => b.total - a.total).slice(0, 3);
+    return res.json({ today: metricsToday, yesterday: metricsYesterday, chartData, lowStockCount, recentSales, formattedSellers, topProducts });
+  } catch (error) { return res.status(500).json({ error: "Erro dashboard" }); }
+});
+
+app.get('/my-sales-metrics', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req); const today = new Date(); today.setHours(0, 0, 0, 0);
+    const mySalesToday = await prisma.sale.findMany({ where: { storeId: user.storeId, userId: user.userId, createdAt: { gte: today } } });
+    const revenueToday = mySalesToday.reduce((acc, s) => acc + Number(s.total), 0);
+    const countToday = mySalesToday.length;
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const mySalesPeriod = await prisma.sale.findMany({ where: { storeId: user.storeId, userId: user.userId, createdAt: { gte: sevenDaysAgo } } });
+    const toLocalISO = (date: Date) => { const offset = date.getTimezoneOffset() * 60000; return new Date(date.getTime() - offset).toISOString().split('T')[0]; };
+    const chartData = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const label = d.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase().replace('.', ''); const targetDateStr = toLocalISO(d); const daySales = mySalesPeriod.filter(s => toLocalISO(new Date(s.createdAt)) === targetDateStr); const total = daySales.reduce((acc, s) => acc + Number(s.total), 0); chartData.push({ day: label, value: total }); }
+    const myRecentSales = await prisma.sale.findMany({ where: { storeId: user.storeId, userId: user.userId }, take: 5, orderBy: { createdAt: 'desc' }, include: { items: { include: { product: true } } } });
+    return res.json({ revenueToday, countToday, chartData, recentSales: myRecentSales });
+  } catch (error) { return res.status(500).json({ error: "Erro metrics pessoais." }); }
+});
+
+// --- OUTROS ---
+app.post('/auth/register-owner', async (req, res) => {
+    try {
+    const { name, email, password, storeName } = req.body;
+    if (!email || !password || !storeName) return res.status(400).json({ error: "Preencha todos os campos." });
+    const userExists = await prisma.user.findUnique({ where: { email } });
+    if (userExists) return res.status(400).json({ error: "Este e-mail já está em uso." });
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({ data: { name, email, passwordHash } });
+      const store = await tx.store.create({ data: { name: storeName } });
+      await tx.storeUser.create({ data: { userId: user.id, storeId: store.id, role: 'OWNER' } });
+      return { user, store };
+    });
+    return res.status(201).json({ message: "Sucesso!", user: { name: result.user.name, email: result.user.email }, store: { name: result.store.name } });
+  } catch (error) { return res.status(500).json({ error: "Erro interno." }); }
+});
+
+app.put('/profile', async (req, res) => {
+  try {
+    const requester = getUserIdFromToken(req); const { name, avatarUrl } = req.body;
+    const updatedUser = await prisma.user.update({ where: { id: requester.userId }, data: { name: name, avatarUrl: avatarUrl } });
+    return res.json({ name: updatedUser.name, email: updatedUser.email, avatarUrl: updatedUser.avatarUrl });
+  } catch (error) { return res.status(500).json({ error: "Erro ao atualizar perfil." }); }
+});
+
+app.post('/stock/entry', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    if (user.role !== 'OWNER' && !user.canManageProducts) return res.status(403).json({ error: "Sem permissão." });
+    const { productId, quantity, newCostPrice, type, reason } = req.body;
+    const qty = Number(quantity);
+    if (!productId || qty <= 0) return res.status(400).json({ error: "Dados inválidos." });
+    const currentProduct = await prisma.product.findUnique({ where: { id: productId } });
+    if (!currentProduct) return res.status(404).json({ error: "Produto não encontrado." });
+    const oldStock = currentProduct.stock;
+    const isLoss = type === 'LOSS';
+    const newStock = isLoss ? oldStock - qty : oldStock + qty;
+    if (isLoss && newStock < 0) return res.status(400).json({ error: "Estoque insuficiente para essa baixa." });
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.product.update({ where: { id: productId }, data: { stock: isLoss ? { decrement: qty } : { increment: qty }, costPrice: (!isLoss && newCostPrice) ? Number(newCostPrice) : undefined } });
+      await tx.stockEntry.create({ data: { storeId: user.storeId, productId: productId, quantity: qty, oldStock: oldStock, newStock: newStock, costPrice: newCostPrice ? Number(newCostPrice) : currentProduct.costPrice, entryType: type || 'ENTRY', reason: reason || (isLoss ? 'Perda/Quebra' : 'Compra'), userId: user.id } });
+      return updated;
+    });
+    return res.json(result);
+  } catch (error) { return res.status(500).json({ error: "Erro na movimentação." }); }
+});
+
+app.get('/stock/history', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const history = await prisma.stockEntry.findMany({ where: { storeId: user.storeId }, orderBy: { createdAt: 'desc' }, take: 50, include: { product: { select: { name: true } } } });
+    return res.json(history);
+  } catch (error) { return res.status(500).json({ error: "Erro ao buscar histórico." }); }
+});
+
+app.get('/reports', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req); const { period } = req.query; const today = new Date(); let startDate = new Date(); if (period === '30days') startDate.setDate(today.getDate() - 30); else if (period === 'year') startDate.setFullYear(today.getFullYear() - 1); else startDate.setDate(today.getDate() - 7);
+    const sales = await prisma.sale.findMany({ where: { storeId: user.storeId, createdAt: { gte: startDate } }, include: { items: { include: { product: true } } }, orderBy: { createdAt: 'asc' } });
+    let totalRevenue = 0; let totalCost = 0; const categoryMap: any = {};
+    sales.forEach(sale => { totalRevenue += Number(sale.total); sale.items.forEach(item => { const cost = Number(item.product.costPrice || 0) * item.quantity; totalCost += cost; const cat = item.product.category || 'Outros'; if (!categoryMap[cat]) categoryMap[cat] = 0; categoryMap[cat] += Number(item.price) * item.quantity; }); });
+    const netProfit = totalRevenue - totalCost; const margin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
+    const salesByDay: any = {}; const profitByDay: any = {};
+    sales.forEach(sale => { const dateKey = new Date(sale.createdAt).toLocaleDateString('pt-BR'); if (!salesByDay[dateKey]) { salesByDay[dateKey] = 0; profitByDay[dateKey] = 0; } salesByDay[dateKey] += Number(sale.total); let saleCost = 0; sale.items.forEach(i => saleCost += Number(i.product.costPrice || 0) * i.quantity); profitByDay[dateKey] += (Number(sale.total) - saleCost); });
+    const chartData = Object.keys(salesByDay).map(date => ({ date, sales: salesByDay[date], profit: profitByDay[date] }));
+    const categoryData = Object.keys(categoryMap).map(name => ({ name, value: categoryMap[name] })).sort((a, b) => b.value - a.value);
+    return res.json({ totalRevenue, netProfit, margin, chartData, categoryData });
+  } catch (error) { return res.status(500).json({ error: "Erro ao gerar relatório." }); }
+});
+
+app.get('/notifications', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req); const products = await prisma.product.findMany({ where: { storeId: user.storeId }, select: { id: true, name: true, stock: true, minStock: true } });
+    const notifications = []; const lowStockItems = products.filter(p => p.stock <= (p.minStock || 5));
+    lowStockItems.slice(0, 5).forEach(p => { notifications.push({ id: `stock-${p.id}`, title: "Estoque Crítico", message: `O produto "${p.name}" tem apenas ${p.stock} unidades.`, type: "danger", time: "Agora" }); });
+    if (lowStockItems.length > 5) { notifications.push({ id: 'stock-many', title: "Atenção ao Estoque", message: `Outros ${lowStockItems.length - 5} produtos também estão acabando.`, type: "danger", time: "Agora" }); }
+    if (notifications.length === 0) { notifications.push({ id: 'all-good', title: "Tudo sob controle", message: "Seu estoque está saudável. Nenhuma pendência.", type: "success", time: "Hoje" }); }
+    return res.json(notifications);
+  } catch (error) { return res.status(500).json({ error: "Erro ao buscar notificações." }); }
+});
+
+// --- 11. GESTÃO DE CLIENTES (ROTAS QUE FALTAVAM) ---
+app.get('/customers', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const customers = await prisma.customer.findMany({
+      where: { storeId: user.storeId },
+      orderBy: { name: 'asc' },
+      include: { _count: { select: { sales: true } } }
+    });
+    return res.json(customers);
+  } catch (error) { return res.status(500).json({ error: "Erro ao buscar clientes." }); }
+});
+
+app.post('/customers', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { name, email, phone, cpf, address } = req.body;
+    if (!name) return res.status(400).json({ error: "Nome é obrigatório." });
+    const customer = await prisma.customer.create({
+      data: { storeId: user.storeId, name, email, phone, cpf, address }
+    });
+    return res.status(201).json(customer);
+  } catch (error) { return res.status(500).json({ error: "Erro ao criar cliente." }); }
+});
+
+app.put('/customers/:id', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { id } = req.params; const { name, email, phone, cpf, address } = req.body;
+    const exists = await prisma.customer.findFirst({ where: { id, storeId: user.storeId } });
+    if (!exists) return res.status(404).json({ error: "Cliente não encontrado." });
+    const updated = await prisma.customer.update({
+      where: { id }, data: { name, email, phone, cpf, address }
+    });
+    return res.json(updated);
+  } catch (error) { return res.status(500).json({ error: "Erro ao atualizar." }); }
+});
+
+app.delete('/customers/:id', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req); const { id } = req.params;
+    const exists = await prisma.customer.findFirst({ where: { id, storeId: user.storeId } });
+    if (!exists) return res.status(404).json({ error: "Cliente não encontrado." });
+    await prisma.customer.delete({ where: { id } });
+    return res.json({ message: "Cliente removido." });
+  } catch (error) { return res.status(500).json({ error: "Erro ao deletar." }); }
+});
+
+// A. Histórico Completo de um Cliente (Vendas + Dívidas)
+app.get('/customers/:id/history', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { id } = req.params;
+
+    const sales = await prisma.sale.findMany({
+      where: { storeId: user.storeId, customerId: id },
+      include: { items: { include: { product: { select: { name: true } } } } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.json(sales);
+  } catch (error) { return res.status(500).json({ error: "Erro ao buscar histórico." }); }
+});
+
+// B. Tabela Geral de Fiados (Todas as dívidas da loja)
+app.get('/sales/debts', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    
+    const debts = await prisma.sale.findMany({
+      where: { 
+        storeId: user.storeId, 
+        paymentMethod: 'CREDIT_STORE',
+        status: 'PENDING'
+      },
+      include: { 
+        customer: { select: { name: true, phone: true } },
+        items: { include: { product: { select: { name: true } } } }
+      },
+      orderBy: { dueDate: 'asc' } // Ordena pelo que vence primeiro
+    });
+
+    return res.json(debts);
+  } catch (error) { return res.status(500).json({ error: "Erro ao buscar dívidas." }); }
+});
+
+// C. Dar Baixa em Dívida (Pagar)
+app.put('/sales/:id/pay', async (req, res) => {
+  try {
+    const user = getUserIdFromToken(req);
+    const { id } = req.params;
+
+    // Verifica se a venda existe e é dessa loja
+    const sale = await prisma.sale.findFirst({ where: { id, storeId: user.storeId } });
+    if (!sale) return res.status(404).json({ error: "Venda não encontrada." });
+
+    if (sale.status === 'PAID') return res.status(400).json({ error: "Esta conta já foi paga." });
+
+    await prisma.sale.update({
+      where: { id },
+      data: { status: 'PAID' }
+    });
+
+    return res.json({ message: "Dívida quitada com sucesso!" });
+  } catch (error) { return res.status(500).json({ error: "Erro ao dar baixa." }); }
+});
+
+const PORT = 3333;
+app.listen(PORT, () => console.log(`🔥 Servidor rodando: http://localhost:${PORT}`));
+
+
+
+
+

@@ -1,0 +1,173 @@
+// backend/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Mantenha o que você usa (postgresql ou sqlite)
+  url      = env("DATABASE_URL")
+}
+
+// --- USUÁRIOS E LOJA ---
+
+model User {
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  passwordHash   String
+  avatarUrl      String?
+  isSuperAdmin   Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  
+  memberships    StoreUser[]
+  sales          Sale[]
+  stockEntries   StockEntry[]
+}
+
+model Store {
+  id             String       @id @default(uuid())
+  name           String
+  plan           StorePlan    @default(FREE)
+  createdAt      DateTime     @default(now())
+  
+  memberships    StoreUser[]
+  products       Product[]
+  sales          Sale[]
+  stockEntries   StockEntry[]
+  customers      Customer[]
+}
+
+model StoreUser {
+  id                String  @id @default(uuid())
+  role              Role
+  userId            String
+  storeId           String
+  
+  canSell           Boolean @default(false)
+  canManageProducts Boolean @default(false)
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store             Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storeId])
+}
+
+// --- PRODUTOS E ESTOQUE ---
+
+model Product {
+  id           String   @id @default(uuid())
+  storeId      String
+  
+  name         String
+  description  String?
+  category     String?
+  imageUrl     String?
+  
+  price        Decimal
+  costPrice    Decimal?
+  
+  stock        Int
+  minStock     Int      @default(5)
+  isVisible    Boolean  @default(true)
+  
+  store        Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  saleItems    SaleItem[]    
+  stockEntries StockEntry[]  
+}
+
+model StockEntry {
+  id          String   @id @default(uuid())
+  storeId     String
+  productId   String
+  userId      String?
+
+  entryType   String   @default("ENTRY") // ENTRY, LOSS
+  reason      String?  
+  
+  quantity    Int
+  oldStock    Int
+  newStock    Int
+  costPrice   Decimal?
+  createdAt   DateTime @default(now())
+  
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+// --- VENDAS E CLIENTES ---
+
+model Customer {
+  id          String   @id @default(uuid())
+  storeId     String
+  
+  name        String
+  email       String?
+  phone       String?
+  cpf         String?
+  address     String?
+  createdAt   DateTime @default(now())
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sales       Sale[]
+}
+
+model Sale {
+  id            String   @id @default(uuid())
+  storeId       String
+  userId        String?  
+  customerId    String?
+
+  total         Decimal
+  createdAt     DateTime @default(now())
+  
+  // Dados Financeiros
+  paymentMethod PaymentMethod @default(MONEY) 
+  status        PaymentStatus @default(PAID)    
+  dueDate       DateTime?                       
+  
+  items         SaleItem[]
+  
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user          User?     @relation(fields: [userId], references: [id])
+  customer      Customer? @relation(fields: [customerId], references: [id])
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+  
+  quantity  Int
+  price     Decimal 
+  
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// --- ENUMS ---
+
+enum Role {
+  OWNER
+  MANAGER
+  SELLER
+}
+
+enum StorePlan {
+  FREE
+  PRO
+}
+
+enum PaymentMethod {
+  MONEY
+  CREDIT_CARD
+  DEBIT_CARD
+  PIX
+  CREDIT_STORE 
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+}
