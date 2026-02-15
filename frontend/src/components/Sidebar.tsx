@@ -1,10 +1,24 @@
-import { LayoutDashboard, ShoppingBag, Package, LogOut, Users, PackagePlusIcon, BarChart3, Settings, CreditCard, ShieldAlert, DollarSign } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  ShoppingBag, 
+  Package, 
+  LogOut, 
+  Users, 
+  PackagePlusIcon, 
+  BarChart3, 
+  Settings, 
+  CreditCard, 
+  ShieldAlert, 
+  DollarSign, 
+  UserCog,      // Novo ícone para Equipe
+  TrendingDown  // Novo ícone para Despesas
+} from 'lucide-react';
 
 interface SidebarProps {
-  active: 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow';
+  active: 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses';
   onNavigate: (page: any) => void;
   onLogout: () => void;
-  user?: any; // Recebemos o user para saber se ele é vendedor
+  user?: any; 
 }
 
 export const Sidebar = ({ active, onNavigate, onLogout, user }: SidebarProps) => {
@@ -46,56 +60,66 @@ export const Sidebar = ({ active, onNavigate, onLogout, user }: SidebarProps) =>
             <ShoppingBag size={18} /> <span>Vendas</span>
           </button>
 
+          <button onClick={() => onNavigate('cashflow')} className={getButtonClass('cashflow')}>
+             <DollarSign size={18} /> <span>Fluxo de Caixa</span>
+          </button>
 
-  
-          {/* BOTÃO FLUXO DE CAIXA (AJUSTADO) */}
-              <button 
-                onClick={() => onNavigate('cashflow')} 
-                className={getButtonClass('cashflow')}
-              >
-                <DollarSign size={20} /> Fluxo de Caixa
-              </button>
+          {/* NOVO BOTÃO DE DESPESAS */}
+          {!isSeller && (
+             <button onClick={() => onNavigate('expenses')} className={getButtonClass('expenses')}>
+                <TrendingDown size={18} /> <span>Despesas</span>
+             </button>
+          )}
+
+          <div className="pt-4 pb-2">
+             <p className="text-[10px] font-bold text-slate-500 uppercase px-4">Gestão</p>
+          </div>
 
           <button onClick={() => onNavigate('customers')} className={getButtonClass('customers')}>
             <Users size={18} /> <span>Clientes</span>
           </button>
 
-          {/* SÓ MOSTRA EQUIPE SE NÃO FOR VENDEDOR */}
+          {/* ÍCONE ALTERADO PARA DIFERENCIAR DE CLIENTES */}
           {!isSeller && (
             <button onClick={() => onNavigate('team')} className={getButtonClass('team')}>
-                <Users size={18} /> <span>Equipe</span>
+                <UserCog size={18} /> <span>Equipe</span>
             </button>
           )}
+
           {!isSeller && (
             <button onClick={() => onNavigate('stock')} className={getButtonClass('stock')}>
               <PackagePlusIcon size={18} /> <span>Entrada de Estoque</span>
             </button>
           )}
+          
           {!isSeller && (
             <button onClick={() => onNavigate('reports')} className={getButtonClass('reports')}>
               <BarChart3 size={18} /> <span>Relatórios</span>
             </button>
           )}
-        {!isSeller && (
-          <button onClick={() => onNavigate('settings')} className={getButtonClass('settings')}>
-            <Settings size={18} /> <span>Configurações</span>
-          </button>
-        )}
-        {!isSeller && (
-          <button onClick={() => onNavigate('subscription')} className={getButtonClass('subscription')}>
-            <CreditCard size={18} /> <span>Assinatura</span>
-          </button>
-        )}
-        {user?.isSuperAdmin && (
-          <button onClick={() => onNavigate('admin')} className={getButtonClass('admin')}>
-            <ShieldAlert size={18} /> <span>Painel CEO</span>
-          </button>
-        )}
+          
+          {!isSeller && (
+            <button onClick={() => onNavigate('settings')} className={getButtonClass('settings')}>
+              <Settings size={18} /> <span>Configurações</span>
+            </button>
+          )}
+          
+          {!isSeller && (
+            <button onClick={() => onNavigate('subscription')} className={getButtonClass('subscription')}>
+              <CreditCard size={18} /> <span>Assinatura</span>
+            </button>
+          )}
+          
+          {user?.isSuperAdmin && (
+            <button onClick={() => onNavigate('admin')} className={getButtonClass('admin')}>
+              <ShieldAlert size={18} /> <span>Painel CEO</span>
+            </button>
+          )}
         </nav>
       </div>
 
       <div className="space-y-6">
-        {/* CARD DE UPGRADE (VISUAL) - Só pra dono ver, talvez? Deixei pra todos por enquanto */}
+        {/* CARD DE UPGRADE (VISUAL) */}
         {!isSeller && (
             <div className="bg-slate-800/50 rounded-2xl p-5 border border-slate-700/50 relative overflow-hidden group">
                 <div className="absolute -right-6 -top-6 w-20 h-20 bg-blue-500/20 rounded-full group-hover:bg-blue-500/30 transition-all"></div>

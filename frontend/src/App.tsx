@@ -11,12 +11,13 @@ import { Customers } from './pages/Customers';
 import { Settings } from './pages/Settings';
 import { Subscription } from './pages/Subscription';
 import { SuperAdmin } from './pages/SuperAdmin';
-import { CashFlow } from './pages/CashFlow'; // <--- (1) OBA! O IMPORT VOLTOU
+import { CashFlow } from './pages/CashFlow';
+import { Expenses } from './pages/Expenses'; // <--- (1) IMPORT NOVO
 import { Store, Zap, Tag } from 'lucide-react';
 
 export default function App() {
-  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow'>('home'); 
-  // (2) Adicionei 'cashflow' na tipagem acima ^
+  // (2) Adicionei 'expenses' na lista de telas possíveis abaixo
+  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses'>('home'); 
 
   const [user, setUser] = useState<any>(null);
   const [activeStoreName, setActiveStoreName] = useState('');
@@ -158,9 +159,10 @@ export default function App() {
   if (view === 'settings') return <Settings {...commonProps} />;
   if (view === 'subscription') return <Subscription {...commonProps} />;
   if (view === 'admin') return <SuperAdmin {...commonProps} />;
-  
-  // (3) E AQUI ESTÁ O BLOCO QUE FALTAVA:
   if (view === 'cashflow') return <CashFlow {...commonProps} />;
+  
+  // (3) AQUI ESTÁ A MÁGICA:
+  if (view === 'expenses') return <Expenses {...commonProps} />;
 
   return (
     <div className="w-full min-h-screen">

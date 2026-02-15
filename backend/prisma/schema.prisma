@@ -31,14 +31,14 @@ model Store {
   plan           StorePlan    @default(FREE)
   createdAt      DateTime     @default(now())
   
+  // Relações
   memberships    StoreUser[]
   products       Product[]
   sales          Sale[]
   stockEntries   StockEntry[]
   customers      Customer[]
-  
-  // --- A LINHA QUE FALTAVA ---
   cashFlows      CashFlow[]
+  expenses       Expense[]    // <--- Tabela nova de Despesas
 }
 
 model StoreUser {
@@ -181,6 +181,25 @@ model CashFlowMovement {
   createdAt   DateTime @default(now())
 
   cashFlow    CashFlow @relation(fields: [cashFlowId], references: [id], onDelete: Cascade)
+}
+
+// --- DESPESAS (CONTAS A PAGAR) ---
+
+model Expense {
+  id          String   @id @default(uuid())
+  storeId     String
+  
+  description String   // Ex: Conta de Luz
+  category    String   // Ex: Fixa, Fornecedor, Pessoal
+  value       Decimal
+  dueDate     DateTime // Data de Vencimento
+  
+  paid        Boolean  @default(false) // Já pagou?
+  paidAt      DateTime? // Quando pagou?
+  
+  createdAt   DateTime @default(now())
+
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
 // --- ENUMS ---

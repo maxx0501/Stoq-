@@ -13,7 +13,8 @@ import teamRoutes from './routes/team.routes';
 import cashflowRoutes from './routes/cashflow.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import statsRoutes from './routes/stats.routes';
-import reportsRoutes from './routes/reports.routes'; // <--- (1) IMPORTEI AQUI
+import reportsRoutes from './routes/reports.routes';
+import expensesRoutes from './routes/expenses.routes';
 
 
 const app = express();
@@ -35,7 +36,8 @@ app.use('/payments', paymentRoutes);
 app.use('/team', teamRoutes);
 app.use('/sellers', teamRoutes);
 app.use('/cashflow', cashflowRoutes);
-app.use('/reports', reportsRoutes); // <--- (2) ADICIONEI AQUI
+app.use('/reports', reportsRoutes);
+app.use('/expenses', expensesRoutes);
 
 // Rotas de Dashboard (Compatibilidade)
 app.use('/dashboard-metrics', dashboardRoutes); 
