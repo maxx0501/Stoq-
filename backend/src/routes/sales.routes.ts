@@ -95,4 +95,133 @@ router.get('/my-metrics', async (req, res) => {
     } catch (e) { return res.status(500).json({ error: "Erro metrics." }); }
 });
 
+router.get('/analytics/advanced', async (req, res) => {
+    const user = (req as any).user;
+    
+    try {
+        // Data de corte: 30 dias atrás
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // BUSCA PRINCIPAL: Todas as vendas completas dos últimos 30 dias
+        // Trazemos tudo de uma vez para processar na memória (é mais rápido que fazer 10 queries no banco)
+        const sales = await prisma.sale.findMany({
+            where: { 
+                storeId: user.storeId,
+                createdAt: { gte: thirtyDaysAgo },
+                status: 'PAID' // Só vendas pagas
+            },
+            include: { 
+                items: { include: { product: true } }, 
+                user: true,
+                customer: true
+            }
+        });
+
+        // --- PROCESSAMENTO DOS DADOS ---
+
+        // 1. Ranking Vendedores (Já tínhamos)
+        const sellerMap: any = {};
+        // 2. Formas de Pagamento (Novo)
+        const paymentMap: any = {};
+        // 3. Vendas por Hora (Novo)
+        const hoursMap = new Array(24).fill(0);
+        // 4. Vendas por Dia da Semana (Novo - 0=Dom, 1=Seg...)
+        const weekDayMap = new Array(7).fill(0); 
+        // 5. Categorias (Já tínhamos)
+        const categoryMap: any = {};
+        // 6. Evolução Diária & Ticket Médio
+        const dailyMap: any = {};
+        // 7. Top Clientes
+        const customerMap: any = {};
+
+        sales.forEach(sale => {
+            const total = Number(sale.total);
+            const date = new Date(sale.createdAt);
+            const dateKey = date.toLocaleDateString('pt-BR'); // "14/02/2026"
+
+            // Vendedores
+            const sellerName = sale.user?.name || 'Sistema';
+            sellerMap[sellerName] = (sellerMap[sellerName] || 0) + total;
+
+            // Pagamento
+            const method = sale.paymentMethod;
+            paymentMap[method] = (paymentMap[method] || 0) + total;
+
+            // Hora e Dia da Semana
+            hoursMap[date.getHours()] += 1; // Contamos QUANTIDADE de vendas por hora
+            weekDayMap[date.getDay()] += total; // Valor vendido por dia da semana
+
+            // Clientes
+            if (sale.customer) {
+                customerMap[sale.customer.name] = (customerMap[sale.customer.name] || 0) + total;
+            }
+
+            // Evolução Diária
+            if (!dailyMap[dateKey]) dailyMap[dateKey] = { total: 0, count: 0 };
+            dailyMap[dateKey].total += total;
+            dailyMap[dateKey].count += 1;
+
+            // Categorias (Item a item)
+            sale.items.forEach(item => {
+                const cat = item.product.category || 'Outros';
+                // Lucro Bruto (Preço - Custo)
+                // Se não tiver custo cadastrado, assumimos lucro = preço (cuidado aqui no futuro)
+                // Vamos focar só em Venda por Categoria por enquanto
+                categoryMap[cat] = (categoryMap[cat] || 0) + (Number(item.price) * item.quantity);
+            });
+        });
+
+        // --- FORMATAÇÃO PARA O FRONTEND (Arrays) ---
+
+        const sellers = Object.keys(sellerMap).map(k => ({ name: k, value: sellerMap[k] })).sort((a,b) => b.value - a.value).slice(0,5);
+        
+        const payments = Object.keys(paymentMap).map(k => ({ name: k, value: paymentMap[k] }));
+        
+        const categories = Object.keys(categoryMap).map(k => ({ name: k, value: categoryMap[k] })).sort((a,b) => b.value - a.value).slice(0,5);
+        
+        const salesByHour = hoursMap.map((count, hour) => ({ 
+            name: `${hour}h`, 
+            value: count 
+        }));
+
+        const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const salesByWeekDay = weekDayMap.map((val, idx) => ({ 
+            name: weekDays[idx], 
+            value: val 
+        }));
+
+        const topCustomers = Object.keys(customerMap).map(k => ({ name: k, value: customerMap[k] })).sort((a,b) => b.value - a.value).slice(0,5);
+
+        // Evolução (Preenche dias vazios com 0)
+        const dailyHistory = [];
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toLocaleDateString('pt-BR');
+            const dataDay = dailyMap[key] || { total: 0, count: 0 };
+            
+            dailyHistory.push({
+                date: key.slice(0, 5), // "14/02"
+                total: dataDay.total,
+                ticket: dataDay.count > 0 ? (dataDay.total / dataDay.count) : 0
+            });
+        }
+
+        return res.json({
+            sellers,
+            payments,
+            categories,
+            salesByHour,
+            salesByWeekDay,
+            topCustomers,
+            dailyHistory
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Erro analytics" });
+    }
+});
+
 export default router;
