@@ -100,6 +100,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
             </p>
         </div>
       </div>
+      
 
       {/* DIREITA: Ações */}
       <div className="flex items-center gap-4">

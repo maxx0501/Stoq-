@@ -1,10 +1,44 @@
 import { useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Check, Zap, ShieldCheck, Rocket, Crown, CheckCircle } from 'lucide-react';
+import { Check, Zap, ShieldCheck, Rocket, Crown, CheckCircle, Loader2 } from 'lucide-react';
 
 export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // --- LÓGICA DE PAGAMENTO ---
+  const handleSubscribe = async () => {
+    setIsLoading(true);
+    try {
+        const token = localStorage.getItem('stoq_token');
+        
+        // Chama a rota que criamos no Backend
+        const response = await fetch('http://localhost:3333/payments/create-checkout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ planType: billingCycle })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.init_point) {
+            // Redireciona para o Mercado Pago
+            window.location.href = data.init_point;
+        } else {
+            alert("Erro ao criar pagamento: " + (data.error || "Tente novamente."));
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Erro de conexão com o servidor.");
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen bg-[#F8F9FC] font-sans">
@@ -32,36 +66,32 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
                         Comece grátis e evolua conforme suas vendas aumentam. Sem contratos de fidelidade, cancele quando quiser.
                     </p>
 
-                    {/* Toggle Mensal/Anual Corrigido */}
-<div className="flex justify-center mt-8">
-    <div className="bg-slate-100 p-1.5 rounded-xl flex relative cursor-pointer select-none">
-        
-        {/* O "Thumb" (Fundo Branco que desliza) */}
-        {/* Ele fica absoluto e se move baseado na escolha */}
-        <div 
-            className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-lg shadow-sm transition-all duration-300 ease-out
-            ${billingCycle === 'monthly' ? 'left-1.5' : 'left-[calc(50%+1.5px)]'}`}
-        ></div>
+                    {/* Toggle Mensal/Anual */}
+                    <div className="flex justify-center mt-8">
+                        <div className="bg-slate-100 p-1.5 rounded-xl flex relative cursor-pointer select-none">
+                            
+                            <div 
+                                className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-lg shadow-sm transition-all duration-300 ease-out
+                                ${billingCycle === 'monthly' ? 'left-1.5' : 'left-[calc(50%+1.5px)]'}`}
+                            ></div>
 
-        {/* Botão Mensal */}
-        <button 
-            onClick={() => setBillingCycle('monthly')}
-            className={`relative z-10 px-8 py-2 rounded-lg text-sm font-bold transition-colors w-32
-            ${billingCycle === 'monthly' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-600'}`}
-        >
-            Mensal
-        </button>
+                            <button 
+                                onClick={() => setBillingCycle('monthly')}
+                                className={`relative z-10 px-8 py-2 rounded-lg text-sm font-bold transition-colors w-32
+                                ${billingCycle === 'monthly' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-600'}`}
+                            >
+                                Mensal
+                            </button>
 
-        {/* Botão Anual */}
-        <button 
-            onClick={() => setBillingCycle('yearly')}
-            className={`relative z-10 px-8 py-2 rounded-lg text-sm font-bold transition-colors w-32 flex items-center justify-center gap-2
-            ${billingCycle === 'yearly' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-600'}`}
-        >
-            Anual <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-black">-20%</span>
-        </button>
-    </div>
-</div>
+                            <button 
+                                onClick={() => setBillingCycle('yearly')}
+                                className={`relative z-10 px-8 py-2 rounded-lg text-sm font-bold transition-colors w-32 flex items-center justify-center gap-2
+                                ${billingCycle === 'yearly' ? 'text-slate-800' : 'text-slate-500 hover:text-slate-600'}`}
+                            >
+                                Anual <span className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-black">-20%</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* GRID DE PLANOS */}
@@ -130,11 +160,17 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
                                     {billingCycle === 'yearly' && <span className="text-xs text-emerald-400 font-bold ml-2 mb-2 bg-emerald-400/10 px-2 py-1 rounded">Cobrado anualmente</span>}
                                 </div>
 
+                                {/* BOTÃO DE ASSINAR COM LOADING */}
                                 <button 
-                                    onClick={() => alert("Integração com pagamento em breve!")}
-                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-black text-lg shadow-lg shadow-blue-900/50 mb-8 transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+                                    onClick={handleSubscribe}
+                                    disabled={isLoading}
+                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white font-black text-lg shadow-lg shadow-blue-900/50 mb-8 transition-all flex items-center justify-center gap-2 group-hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    Fazer Upgrade Agora <Zap size={18} className="fill-white"/>
+                                    {isLoading ? (
+                                        <><Loader2 size={24} className="animate-spin"/> Processando...</>
+                                    ) : (
+                                        <>Fazer Upgrade Agora <Zap size={18} className="fill-white"/></>
+                                    )}
                                 </button>
 
                                 <div className="space-y-4">

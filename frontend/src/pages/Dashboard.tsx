@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { WIDGET_REGISTRY } from '../components/dashboard/WidgetRegistry'; // Certifique-se que o caminho está certo
+import { WIDGET_REGISTRY } from '../components/dashboard/WidgetRegistry';
 import { 
   TrendingUp, TrendingDown, DollarSign, ShoppingBag, AlertTriangle, Plus, ArrowRight, Wallet, 
-  LayoutGrid, X, CheckCircle2
+  LayoutGrid, X, CheckCircle2, Calendar
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine 
@@ -14,7 +14,9 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   const [data, setData] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>({ sellers: [], categories: [] });
   const [isLoading, setIsLoading] = useState(true);
-  const [chartPeriod, setChartPeriod] = useState<'7days' | 'month' | 'year'>('7days');
+  
+  // FIXO: Removemos a opção de trocar, agora é sempre 7 dias
+  const chartPeriod = '7days';
   
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [activeWidgets, setActiveWidgets] = useState<string[]>(() => {
@@ -22,7 +24,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
       return saved ? JSON.parse(saved) : [];
   });
 
-  useEffect(() => { fetchMetrics(); }, [chartPeriod]);
+  useEffect(() => { fetchMetrics(); }, []);
 
   useEffect(() => {
     if (activeWidgets.length > 0 && analytics.sellers.length === 0) {
@@ -33,7 +35,8 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   const fetchMetrics = async () => {
     try {
       const token = localStorage.getItem('stoq_token');
-      const res = await fetch(`http://localhost:3333/dashboard-metrics?period=${chartPeriod}`, {
+      // Forçamos o periodo para 7days
+      const res = await fetch(`http://localhost:3333/dashboard-metrics?period=7days`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
@@ -44,11 +47,11 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   const fetchAnalytics = async () => {
     try {
         const token = localStorage.getItem('stoq_token');
-        const res = await fetch('http://localhost:3333/sales/analytics/advanced', {
+        // A rota advanced continua funcionando para os widgets extras
+        const res = await fetch('http://localhost:3333/dashboard-metrics/advanced', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const json = await res.json();
-        console.log("📊 DADOS DOS GRÁFICOS:", json);
         if (res.ok) setAnalytics(json);
     } catch (error) { console.error("Erro analytics"); }
   };
@@ -95,8 +98,6 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   const revTrend = (data?.today.revenue >= data?.yesterday.revenue) ? 'up' : 'down';
   const profitTrend = (data?.today.profit >= data?.yesterday.profit) ? 'up' : 'down';
   const chartAverage = calculateAverage();
-  const currentMonthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
-  const currentYear = new Date().getFullYear();
 
   const KpiCard = ({ title, value, subtext, icon: Icon, color, trend, trendValue }: any) => (
     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
@@ -146,29 +147,46 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                     <KpiCard title="Risco de Estoque" value={`${data?.lowStockCount} itens`} subtext="Abaixo do mínimo" icon={AlertTriangle} color="bg-amber-50 text-amber-600" trend={data?.lowStockCount > 0 ? 'down' : 'up'} trendValue={data?.lowStockCount > 0 ? 'Crítico' : 'Ok'}/>
                 </div>
 
-                {/* 1. GRÁFICOS PRINCIPAIS (AGORA EM CIMA) */}
+                {/* 1. GRÁFICO PRINCIPAL */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                         <div className="flex justify-between items-center mb-6">
-                            <div><h3 className="font-bold text-slate-800 text-lg">Faturamento</h3><p className="text-xs text-slate-400">Acompanhamento financeiro.</p></div>
-                            <div className="flex bg-slate-100 p-1 rounded-xl">
-                                <button onClick={() => setChartPeriod('7days')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${chartPeriod === '7days' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>7 Dias</button>
-                                <button onClick={() => setChartPeriod('month')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${chartPeriod === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{currentMonthName}</button>
-                                <button onClick={() => setChartPeriod('year')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${chartPeriod === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>{currentYear}</button>
+                            <div>
+                                <h3 className="font-bold text-slate-800 text-lg">Faturamento</h3>
+                                <p className="text-xs text-slate-400">Acompanhamento financeiro.</p>
+                            </div>
+                            
+                            {/* AQUI ESTAVA O FILTRO - AGORA É SÓ UM TEXTO FIXO */}
+                            <div className="bg-slate-50 text-slate-500 text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-100 flex items-center gap-2">
+                                <Calendar size={14} className="text-slate-400"/>
+                                Últimos 7 Dias
                             </div>
                         </div>
+                        
                         <div className="h-72 w-full">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={data?.chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                               <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} dy={10} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={(value) => `R$ ${value}`} />
+                              
+                              <YAxis width={80} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={(value) => `R$ ${value}`} />
+                              
                               <Tooltip content={<CustomTooltipMain />} cursor={{ fill: '#f8fafc' }} />
-                              <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={chartPeriod === 'month' ? 15 : 40} animationDuration={1000} label={<CustomBarLabel />} />
+                              <Bar dataKey="value" fill="#2563eb" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} label={<CustomBarLabel />} />
                               {chartAverage > 0 && <ReferenceLine y={chartAverage} stroke="#fb923c" strokeDasharray="3 3" />}
                             </BarChart>
                           </ResponsiveContainer>
                         </div>
+                        
+                        {chartAverage > 0 && (
+                           <div className="flex justify-end mt-4 px-2">
+                                <div className="flex items-center gap-3 bg-orange-50 border border-orange-100 px-3 py-2 rounded-lg">
+                                    <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">Média do Período</span>
+                                    <span className="text-sm font-black text-orange-600">{formatMoney(chartAverage)}</span>
+                                    <div className="w-8 h-0.5 bg-orange-300 border-t border-b border-orange-200 border-dashed"></div> 
+                                </div>
+                           </div>
+                        )}
                     </div>
 
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -194,7 +212,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                     </div>
                 </div>
 
-                {/* 2. ÁREA DINÂMICA DE WIDGETS (AGORA NO MEIO) */}
+                {/* 2. ÁREA DINÂMICA DE WIDGETS */}
                 {activeWidgets.length > 0 && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-500">
                         {activeWidgets.map(widgetId => {
@@ -219,7 +237,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                     </div>
                 )}
 
-                {/* 3. TABELA RECENTES (EMBAIXO) */}
+                {/* 3. TABELA RECENTES */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                         <div><h3 className="font-bold text-slate-800">Transações Recentes</h3><p className="text-xs text-slate-400">Últimas movimentações.</p></div>
@@ -259,10 +277,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
         {/* MODAL DE GALERIA - COM SCROLL CORRIGIDO */}
         {showWidgetModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-                {/* Adicionei 'max-h-[85vh]' e 'flex flex-col' para controlar a altura */}
                 <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col">
-                    
-                    {/* CABEÇALHO (Fixo) */}
                     <div className="flex justify-between items-center mb-4 shrink-0">
                         <div>
                             <h3 className="text-xl font-black text-slate-800">Galeria de Gráficos</h3>
@@ -273,7 +288,6 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                         </button>
                     </div>
 
-                    {/* LISTA (Com Scroll) */}
                     <div className="space-y-3 overflow-y-auto pr-2 flex-1 min-h-0 custom-scrollbar">
                         {WIDGET_REGISTRY.map((widget) => {
                             const isActive = activeWidgets.includes(widget.id);
@@ -298,7 +312,6 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                         })}
                     </div>
 
-                    {/* RODAPÉ (Fixo) */}
                     <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end shrink-0">
                         <button onClick={() => setShowWidgetModal(false)} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition shadow-lg w-full sm:w-auto">
                             Concluir

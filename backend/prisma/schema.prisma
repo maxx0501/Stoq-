@@ -1,44 +1,48 @@
-// backend/prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql" // Mantenha o que você usa (postgresql ou sqlite)
+  provider = "postgresql" 
   url      = env("DATABASE_URL")
 }
 
 // --- USUÁRIOS E LOJA ---
 
 model User {
-  id             String    @id @default(uuid())
-  name           String
-  email          String    @unique
-  passwordHash   String
-  avatarUrl      String?
-  isSuperAdmin   Boolean   @default(false)
-  createdAt      DateTime  @default(now())
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  avatarUrl     String?
+  isSuperAdmin  Boolean   @default(false)
   
-  memberships    StoreUser[]
-  sales          Sale[]
-  stockEntries   StockEntry[]
+  // --- SEGURANÇA (Adicionado) ---
+  isVerified        Boolean   @default(false) // Trava o login até confirmar email
+  verificationToken String?   // Guarda o código enviado por email
+  // ------------------------------
+
+  createdAt     DateTime  @default(now())
+  
+  memberships   StoreUser[]
+  sales         Sale[]
+  stockEntries  StockEntry[]
 }
 
 model Store {
-  id             String       @id @default(uuid())
-  name           String
-  plan           StorePlan    @default(FREE)
-  createdAt      DateTime     @default(now())
+  id            String        @id @default(uuid())
+  name          String
+  plan          StorePlan     @default(FREE)
+  createdAt     DateTime      @default(now())
   
   // Relações
-  memberships    StoreUser[]
-  products       Product[]
-  sales          Sale[]
-  stockEntries   StockEntry[]
-  customers      Customer[]
-  cashFlows      CashFlow[]
-  expenses       Expense[]    // <--- Tabela nova de Despesas
+  memberships   StoreUser[]
+  products      Product[]
+  sales         Sale[]
+  stockEntries  StockEntry[]
+  customers     Customer[]
+  cashFlows     CashFlow[]
+  expenses      Expense[]    
 }
 
 model StoreUser {
@@ -59,24 +63,24 @@ model StoreUser {
 // --- PRODUTOS E ESTOQUE ---
 
 model Product {
-  id           String   @id @default(uuid())
-  storeId      String
+  id            String    @id @default(uuid())
+  storeId       String
   
-  name         String
-  description  String?
-  category     String?
-  imageUrl     String?
+  name          String
+  description   String?
+  category      String?
+  imageUrl      String?
   
-  price        Decimal
-  costPrice    Decimal?
+  price         Decimal
+  costPrice     Decimal?
   
-  stock        Int
-  minStock     Int      @default(5)
-  isVisible    Boolean  @default(true)
+  stock         Int
+  minStock      Int       @default(5)
+  isVisible     Boolean   @default(true)
   
-  store        Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  saleItems    SaleItem[]    
-  stockEntries StockEntry[]  
+  store         Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  saleItems     SaleItem[]    
+  stockEntries  StockEntry[]  
 }
 
 model StockEntry {
@@ -117,24 +121,24 @@ model Customer {
 }
 
 model Sale {
-  id            String   @id @default(uuid())
-  storeId       String
-  userId        String?  
-  customerId    String?
+  id             String    @id @default(uuid())
+  storeId        String
+  userId         String?  
+  customerId     String?
 
-  total         Decimal
-  createdAt     DateTime @default(now())
+  total          Decimal
+  createdAt      DateTime @default(now())
   
   // Dados Financeiros
-  paymentMethod PaymentMethod @default(MONEY) 
-  status        PaymentStatus @default(PAID)    
-  dueDate       DateTime?                       
+  paymentMethod  PaymentMethod @default(MONEY) 
+  status         PaymentStatus @default(PAID)    
+  dueDate        DateTime?                        
   
-  items         SaleItem[]
+  items          SaleItem[]
   
-  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  user          User?     @relation(fields: [userId], references: [id])
-  customer      Customer? @relation(fields: [customerId], references: [id])
+  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user           User?     @relation(fields: [userId], references: [id])
+  customer       Customer? @relation(fields: [customerId], references: [id])
 }
 
 model SaleItem {

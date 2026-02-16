@@ -15,7 +15,7 @@ import dashboardRoutes from './routes/dashboard.routes';
 import statsRoutes from './routes/stats.routes';
 import reportsRoutes from './routes/reports.routes';
 import expensesRoutes from './routes/expenses.routes';
-
+import storeRoutes from './routes/store.routes';
 
 const app = express();
 const PORT = 3333;
@@ -38,6 +38,7 @@ app.use('/sellers', teamRoutes);
 app.use('/cashflow', cashflowRoutes);
 app.use('/reports', reportsRoutes);
 app.use('/expenses', expensesRoutes);
+app.use('/stores', storeRoutes);
 
 // Rotas de Dashboard (Compatibilidade)
 app.use('/dashboard-metrics', dashboardRoutes); 
@@ -47,15 +48,36 @@ app.use('/my-sales-metrics', statsRoutes);
 app.get('/', (req, res) => res.send('🚀 Stoq+ API Modular Rodando e Corrigida!'));
 
 // --- SETUP INICIAL ---
+// --- SETUP INICIAL (CORRIGIDO) ---
 const setupSuperAdmin = async () => {
     const email = 'mateused0501@gmail.com';
     try {
         const existing = await prisma.user.findUnique({ where: { email } });
         if (!existing) {
-            const hash = await bcrypt.hash('StoqMaster#2026!', 10);
-            const user = await prisma.user.create({ data: { name: 'Mateus (CEO)', email, passwordHash: hash, isSuperAdmin: true } });
+            // A senha será esta aqui:
+            const hash = await bcrypt.hash('@Mateus05060708', 10); 
+            
+            const user = await prisma.user.create({ 
+                data: { 
+                    name: 'Mateus (CEO)', 
+                    email, 
+                    passwordHash: hash, 
+                    isSuperAdmin: true,
+                    isVerified: true // <--- ADICIONE ISSO AQUI!
+                } 
+            });
+
             const store = await prisma.store.create({ data: { name: 'Stoq HQ', plan: 'PRO' } });
-            await prisma.storeUser.create({ data: { userId: user.id, storeId: store.id, role: 'OWNER' } });
+            
+            // Garante que é OWNER
+            await prisma.storeUser.create({ 
+                data: { 
+                    userId: user.id, 
+                    storeId: store.id, 
+                    role: 'OWNER' 
+                } 
+            });
+            
             console.log(`👑 Admin criado: ${email}`);
         }
     } catch (e) { console.error("Setup error", e); }
