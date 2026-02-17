@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" 
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,10 +17,9 @@ model User {
   avatarUrl     String?
   isSuperAdmin  Boolean   @default(false)
   
-  // --- SEGURANÇA (Adicionado) ---
-  isVerified        Boolean   @default(false) // Trava o login até confirmar email
-  verificationToken String?   // Guarda o código enviado por email
-  // ------------------------------
+  // --- SEGURANÇA ---
+  isVerified        Boolean   @default(false) 
+  verificationToken String?   
 
   createdAt     DateTime  @default(now())
   
@@ -30,11 +29,15 @@ model User {
 }
 
 model Store {
-  id            String        @id @default(uuid())
-  name          String
-  plan          StorePlan     @default(FREE)
-  createdAt     DateTime      @default(now())
+  id        String    @id @default(uuid())
+  name      String
+  plan      StorePlan @default(FREE)
+  createdAt DateTime  @default(now())
   
+  // --- CAMPO NOVO PARA ASSINATURA ---
+  subscriptionExpiresAt DateTime? 
+  // ----------------------------------
+
   // Relações
   memberships   StoreUser[]
   products      Product[]
@@ -42,7 +45,7 @@ model Store {
   stockEntries  StockEntry[]
   customers     Customer[]
   cashFlows     CashFlow[]
-  expenses      Expense[]    
+  expenses      Expense[]     
 }
 
 model StoreUser {
@@ -79,66 +82,66 @@ model Product {
   isVisible     Boolean   @default(true)
   
   store         Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  saleItems     SaleItem[]    
-  stockEntries  StockEntry[]  
+  saleItems     SaleItem[]     
+  stockEntries  StockEntry[]   
 }
 
 model StockEntry {
-  id          String   @id @default(uuid())
-  storeId     String
-  productId   String
-  userId      String?
+  id            String   @id @default(uuid())
+  storeId       String
+  productId     String
+  userId        String?
 
-  entryType   String   @default("ENTRY") // ENTRY, LOSS
-  reason      String?  
+  entryType     String   @default("ENTRY") // ENTRY, LOSS
+  reason        String?  
   
-  quantity    Int
-  oldStock    Int
-  newStock    Int
-  costPrice   Decimal?
-  createdAt   DateTime @default(now())
+  quantity      Int
+  oldStock      Int
+  newStock      Int
+  costPrice     Decimal?
+  createdAt     DateTime @default(now())
   
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id])
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user          User?    @relation(fields: [userId], references: [id])
 }
 
 // --- VENDAS E CLIENTES ---
 
 model Customer {
-  id          String   @id @default(uuid())
-  storeId     String
+  id            String   @id @default(uuid())
+  storeId       String
   
-  name        String
-  email       String?
-  phone       String?
-  cpf         String?
-  address     String?
-  createdAt   DateTime @default(now())
+  name          String
+  email         String?
+  phone         String?
+  cpf           String?
+  address       String?
+  createdAt     DateTime @default(now())
 
-  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  sales       Sale[]
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  sales         Sale[]
 }
 
 model Sale {
-  id             String    @id @default(uuid())
-  storeId        String
-  userId         String?  
-  customerId     String?
+  id              String    @id @default(uuid())
+  storeId         String
+  userId          String?   
+  customerId      String?
 
-  total          Decimal
-  createdAt      DateTime @default(now())
+  total           Decimal
+  createdAt       DateTime @default(now())
   
   // Dados Financeiros
-  paymentMethod  PaymentMethod @default(MONEY) 
-  status         PaymentStatus @default(PAID)    
-  dueDate        DateTime?                        
+  paymentMethod   PaymentMethod @default(MONEY) 
+  status          PaymentStatus @default(PAID)     
+  dueDate         DateTime?                        
   
-  items          SaleItem[]
+  items           SaleItem[]
   
-  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  user           User?     @relation(fields: [userId], references: [id])
-  customer       Customer? @relation(fields: [customerId], references: [id])
+  store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user            User?     @relation(fields: [userId], references: [id])
+  customer        Customer? @relation(fields: [customerId], references: [id])
 }
 
 model SaleItem {
@@ -156,24 +159,24 @@ model SaleItem {
 // --- FLUXO DE CAIXA ---
 
 model CashFlow {
-  id             String    @id @default(uuid())
-  storeId        String
-  operator       String
-  status         String    @default("CLOSED")
+  id              String    @id @default(uuid())
+  storeId         String
+  operator        String
+  status          String    @default("CLOSED")
   
-  openingBalance Decimal   @default(0)
-  totalRevenue   Decimal   @default(0)
-  totalBleed     Decimal   @default(0)
-  totalSupply    Decimal   @default(0)
+  openingBalance  Decimal   @default(0)
+  totalRevenue    Decimal   @default(0)
+  totalBleed      Decimal   @default(0)
+  totalSupply     Decimal   @default(0)
   
-  countedMoney   Decimal?
-  difference     Decimal?
+  countedMoney    Decimal?
+  difference      Decimal?
   
-  startedAt      DateTime  @default(now())
-  closedAt       DateTime?
+  startedAt       DateTime  @default(now())
+  closedAt        DateTime?
 
-  movements      CashFlowMovement[]
-  store          Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  movements       CashFlowMovement[]
+  store           Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
 model CashFlowMovement {

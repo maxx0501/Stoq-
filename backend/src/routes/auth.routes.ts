@@ -127,38 +127,32 @@ router.get('/verify', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
-    // Proteção contra body vazio (bug do autofill às vezes envia vazio)
-    if (!email || !password) {
-        return res.status(400).json({ error: "E-mail e senha são obrigatórios." });
-    }
+    if (!email || !password) return res.status(400).json({ error: "E-mail e senha são obrigatórios." });
 
     try {
         const user = await prisma.user.findUnique({ where: { email } });
         
-        // Segurança: Mensagem genérica para não revelar se e-mail existe, 
-        // A MENOS que seja o caso de verificação pendente.
         if (!user) return res.status(400).json({ error: "Credenciais inválidas." });
-
-        // TRAVA DE SEGURANÇA E RETORNO ESPECÍFICO
         if (!user.isVerified) {
             return res.status(403).json({ 
                 error: "Confirme seu e-mail para acessar.", 
-                code: "EMAIL_NOT_VERIFIED" // O Frontend usa isso para mostrar o botão de reenviar
+                code: "EMAIL_NOT_VERIFIED" 
             });
         }
 
         const validPassword = await bcrypt.compare(password, user.passwordHash);
         if (!validPassword) return res.status(400).json({ error: "Credenciais inválidas." });
 
-        // --- CORREÇÃO DA ROLE ---
-        // Busca vínculo com loja para saber o cargo
-        const storeLink = await prisma.storeUser.findFirst({ where: { userId: user.id } });
+        // --- BUSCA DADOS DA LOJA E DO PLANO ---
+        // O include: { store: true } é essencial para pegar o 'plan'
+        const storeLink = await prisma.storeUser.findFirst({ 
+            where: { userId: user.id },
+            include: { store: true } 
+        });
 
-        // LÓGICA CORRIGIDA:
-        // Se existe storeLink, usa a role do banco (deve ser OWNER se ele criou a loja).
-        // Se NÃO existe, define como null ou 'USER', jamais 'SELLER' padrão.
-        // Isso evita que ele entre num painel de vendedor sem ter loja.
         const userRole = storeLink ? storeLink.role : 'USER'; 
+        // Se não tiver loja ou plano, assume FREE
+        const currentPlan = storeLink?.store?.plan || 'FREE'; 
 
         const token = jwt.sign(
             { 
@@ -175,7 +169,10 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 name: user.name, 
                 email: user.email, 
-                role: userRole 
+                role: userRole,
+                plan: currentPlan, // <--- AGORA O BACKEND ENVIA O PLANO
+                storeCreatedAt: storeLink?.store?.createdAt, 
+                subscriptionExpiresAt: storeLink?.store?.subscriptionExpiresAt,
             }, 
             token,
             storeId: storeLink?.storeId 

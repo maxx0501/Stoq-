@@ -1,9 +1,15 @@
 import { 
   BarChart3, ArrowRight, Store, Zap, Laptop, 
-  Check, ShieldCheck, Cloud, Lock, Calendar, CreditCard
+  Check, ShieldCheck, Cloud, Lock, Calendar, CreditCard, Star
 } from 'lucide-react';
 
-export const Home = ({ onLogin, onSignup }: any) => {
+interface HomeProps {
+    onLogin: () => void;
+    onSignup: () => void;
+    onNavigate: (page: any) => void; // <--- Adicione isso
+}
+
+export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
   
   const FeatureCard = ({ icon, title, desc }: any) => (
     <div className="group bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
@@ -169,7 +175,7 @@ export const Home = ({ onLogin, onSignup }: any) => {
         </div>
       </section>
 
-      {/* PLANOS (Ancoragem de Preço Aplicada) */}
+      {/* PLANOS */}
       <section id="planos" className="bg-slate-900 py-24 px-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-20"></div>
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full blur-[120px] opacity-20"></div>
@@ -188,7 +194,6 @@ export const Home = ({ onLogin, onSignup }: any) => {
                     </div>
                     
                     <div className="mb-6 text-left">
-                        {/* ANCORAGEM DE PREÇO */}
                         <p className="text-sm text-slate-400 font-bold line-through mb-1">De R$ 79,90</p>
                         <div className="flex items-end gap-1 text-slate-900">
                             <span className="text-4xl font-black">R$ 49,90</span>
@@ -211,8 +216,8 @@ export const Home = ({ onLogin, onSignup }: any) => {
 
                 {/* PLANO ANUAL (Super Oferta) */}
                 <div className="bg-white rounded-[2rem] p-8 flex flex-col relative border-4 border-blue-600 hover:scale-[1.02] transition-transform duration-300 shadow-2xl shadow-blue-900/50">
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg">
-                        Melhor Custo-Benefício
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg flex items-center gap-1">
+                        <Star size={12} className="fill-white"/> Melhor Custo-Benefício
                     </div>
 
                     <div className="flex items-center gap-3 mb-4">
@@ -220,32 +225,36 @@ export const Home = ({ onLogin, onSignup }: any) => {
                         <h3 className="text-xl font-bold text-slate-800">Plano Anual</h3>
                     </div>
                     
-                    {/* PREÇO MENSALIZADO ATRAENTE */}
+                    {/* PREÇO ATUALIZADO */}
                     <div className="mb-2 text-left">
                         <p className="text-xs text-slate-400 line-through font-bold">De R$ 598,80</p>
                         <div className="flex items-end gap-1">
-                            <span className="text-4xl font-black text-slate-900">R$ 39,90</span>
-                            <span className="text-slate-500 font-bold mb-1">/mês</span>
+                            <span className="text-4xl font-black text-slate-900">R$ 389,90</span>
+                            <span className="text-slate-500 font-bold mb-1">/ano</span>
                         </div>
-                        <p className="text-xs text-slate-500 font-medium mt-1">
-                            (Cobrado anualmente: R$ 478,80)
-                        </p>
+                        
                     </div>
                     
-                    <p className="text-left text-sm text-emerald-600 font-bold mb-6 bg-emerald-50 inline-block px-3 py-1 rounded-lg self-start">
-                        Economize R$ 120,00 (2 meses OFF)
-                    </p>
+                    <div className="text-left mb-6">
+                         <span className="text-sm text-emerald-700 font-bold bg-emerald-100 px-3 py-1.5 rounded-lg inline-block border border-emerald-200">
+                             Economize R$ 208,90 (35% OFF)
+                         </span>
+                    </div>
 
                     <div className="flex-1 space-y-4 text-left mb-8">
                         <li className="flex items-center gap-3 text-slate-700 text-sm font-bold"><Check size={16} className="text-blue-600"/> 30 dias de teste grátis</li>
-                        <li className="flex items-center gap-3 text-slate-700 text-sm font-bold"><Check size={16} className="text-blue-600"/> Acesso total o ano inteiro</li>
-                        <li className="flex items-center gap-3 text-slate-700 text-sm font-bold"><Check size={16} className="text-blue-600"/> Pagamento único com desconto</li>
-                        <li className="flex items-center gap-3 text-slate-400 text-sm font-medium pt-4 border-t border-slate-100"><Lock size={14}/> Garantia de preço por 12 meses</li>
+                        <li className="flex items-center gap-3 text-slate-700 text-sm font-bold"><Check size={16} className="text-blue-600"/> Acesso garantido por 12 meses</li>
+                        <li className="flex items-center gap-3 text-slate-700 text-sm font-bold"><Check size={16} className="text-blue-600"/> Pagamento único promocional</li>
+                        <li className="flex items-center gap-3 text-slate-400 text-sm font-medium pt-4 border-t border-slate-100"><Lock size={14}/> Proteção contra aumento de preço</li>
                     </div>
 
                     <button onClick={onSignup} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30">
                         Quero o Plano Anual
                     </button>
+                    
+                    <p className="text-[10px] text-center text-slate-400 mt-3">
+                        *Parcele em até 12x no cartão (consulte taxas)
+                    </p>
                 </div>
 
             </div>
@@ -281,9 +290,9 @@ export const Home = ({ onLogin, onSignup }: any) => {
             <div>
                 <h4 className="font-bold mb-4 text-slate-900">Legal</h4>
                 <ul className="space-y-3 text-slate-500 text-sm">
-                <li><span className="cursor-not-allowed opacity-70">Termos de Uso</span></li>
-                <li><span className="cursor-not-allowed opacity-70">Privacidade</span></li>
-                <li><span className="cursor-not-allowed opacity-70">LGPD</span></li>
+                <li><button onClick={() => onNavigate('terms')} className="hover:text-blue-600 transition">Termos de Uso</button></li>
+                <li><button onClick={() => onNavigate('privacy')} className="hover:text-blue-600 transition">Privacidade</button></li>
+                <li><button onClick={() => onNavigate('lgpd')} className="hover:text-blue-600 transition">LGPD</button></li>
                 </ul>
             </div>
           </div>

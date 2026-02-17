@@ -1,14 +1,18 @@
 import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
+import 'dotenv/config'; // <--- Garante que o arquivo .env seja lido aqui
 
-// ⚠️ IMPORTANTE: Use seu token real aqui ou via process.env
-const ACCESS_TOKEN = 'APP_USR-3039873080458856-021406-dda154d7d282df302aad727b4724b807-167654703';
+// O "|| ''" evita erro se o token não for carregado (mas vai dar erro na API se estiver vazio)
+const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || '';
 
-// 1. Configuração Inicial (Exportamos como mpClient para a rota usar)
+if (!ACCESS_TOKEN) {
+  console.error("❌ ERRO CRÍTICO: Token do Mercado Pago não encontrado no .env!");
+}
+
+// 1. Configuração Inicial
 export const mpClient = new MercadoPagoConfig({ accessToken: ACCESS_TOKEN });
 
-// 2. Instâncias úteis (Opcional, mas bom ter pronto)
+// 2. Instâncias
 export const payment = new Payment(mpClient);
 export const preference = new Preference(mpClient);
 
-// Log para garantir que o backend carregou isso
 console.log("✅ Mercado Pago Configurado!");
