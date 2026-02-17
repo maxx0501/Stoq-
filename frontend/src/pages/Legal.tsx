@@ -77,7 +77,7 @@ export const Legal = ({ type, onBack }: LegalProps) => {
           onClick={onBack} 
           className="flex items-center gap-2 text-slate-500 hover:text-blue-600 transition font-bold mb-8"
         >
-          <ArrowLeft size={20} /> Voltar para o Início
+          <ArrowLeft size={20} /> Voltar
         </button>
 
         <div className="bg-white rounded-3xl p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100">

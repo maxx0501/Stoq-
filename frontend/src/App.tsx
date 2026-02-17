@@ -17,10 +17,16 @@ import { Subscription } from './pages/Subscription';
 import { SuperAdmin } from './pages/SuperAdmin';
 import { CashFlow } from './pages/CashFlow';
 import { Expenses } from './pages/Expenses';
+// Importe a página Legal que criamos
 import { Legal } from './pages/Legal';
 
 export default function App() {
-  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses' | 'terms' | 'privacy' | 'lgpd'>('home');
+  // Adicionei os tipos 'terms', 'privacy' e 'lgpd' aqui no estado
+  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses' | 'terms' | 'privacy' | 'lgpd'>('home'); 
+
+  // NOVO ESTADO: Guarda de onde o usuário veio (home, login ou signup)
+  const [previousView, setPreviousView] = useState<string>('home');
+
   const [user, setUser] = useState<any>(null);
   const [activeStoreName, setActiveStoreName] = useState('');
 
@@ -47,8 +53,15 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // --- CHECK DE LOGIN AO CARREGAR ---
+  // --- CHECK DE LOGIN E ROTAS AO CARREGAR ---
   useEffect(() => {
+    // 1. VERIFICA SE O USUÁRIO ENTROU DIRETO EM UMA PÁGINA LEGAL (/terms, /privacy)
+    const path = window.location.pathname;
+    if (path === '/terms') { setView('terms'); return; }
+    if (path === '/privacy') { setView('privacy'); return; }
+    if (path === '/lgpd') { setView('lgpd'); return; }
+
+    // 2. Se não for rota legal, verifica token normal
     const token = localStorage.getItem('stoq_token');
     
     if (token) {
@@ -56,7 +69,6 @@ export default function App() {
         const savedUserRole = localStorage.getItem('stoq_user_role');
         const savedStoreName = localStorage.getItem('stoq_store_name');
         const savedAvatar = localStorage.getItem('stoq_user_avatar');
-        // Recupera o plano e a data de criação (importante para o teste grátis)
         const savedPlan = localStorage.getItem('stoq_store_plan');
         const savedStoreCreatedAt = localStorage.getItem('stoq_store_created_at');
         
@@ -66,11 +78,10 @@ export default function App() {
                 role: savedUserRole || 'USER',
                 avatarUrl: savedAvatar || '',
                 plan: savedPlan || 'FREE',
-                storeCreatedAt: savedStoreCreatedAt // Adiciona ao estado do usuário
+                storeCreatedAt: savedStoreCreatedAt 
             });
         }
 
-        // Se tem token mas não tem nome de loja salvo, vai para setup
         if (!savedStoreName || savedStoreName === 'undefined') {
             setView('setup-store');
         } else {
@@ -81,36 +92,41 @@ export default function App() {
             }
         }
     }
-  }, []);
+  }, []); // Array vazio = roda só uma vez ao abrir o site
 
-  // --- LÓGICA DE BLOQUEIO / TESTE GRÁTIS (30 DIAS) ---
+  // --- LÓGICA DE BLOQUEIO / TESTE GRÁTIS ---
   const checkSubscriptionStatus = () => {
-    // Se não tiver usuário carregado ou for vendedor, libera (vendedor não paga)
     if (!user || user.role === 'SELLER') return true; 
-    
-    // Se é PRO, tá liberado sempre
     if (user.plan === 'PRO') return true; 
 
-    // Se é FREE, verifica se ainda está nos 30 dias de teste
-    // Se não tiver data salva, assume data atual para não bloquear indevidamente no primeiro load
     const createdDate = new Date(user.storeCreatedAt || Date.now());
-    
-    // Aumentado para 30 dias conforme solicitado
     const trialDays = 30; 
-    
     const expirationDate = new Date(createdDate);
     expirationDate.setDate(createdDate.getDate() + trialDays);
     
     const now = new Date();
     
-    // Se hoje for maior que a data de expiração do teste -> BLOQUEIA
     if (now > expirationDate) {
         return false;
     }
-    return true; // Ainda está no teste
+    return true; 
   };
 
-  // --- LOGIN ---
+  // --- FUNÇÕES DE NAVEGAÇÃO LEGAL ---
+  const handleOpenLegal = (page: 'terms' | 'privacy' | 'lgpd') => {
+      setPreviousView(view); // Salva onde estou agora
+      setView(page);         // Vai para a página legal
+  };
+
+  const handleBackFromLegal = () => {
+      setView(previousView as any); // Volta para onde estava
+      // Se estava na home, limpa a URL. Se estava no login, mantém.
+      if (previousView === 'home') {
+          window.history.pushState({}, '', '/');
+      }
+  };
+
+  // --- FUNÇÕES DE LOGIN/LOGOUT ---
   const handleLogin = async () => {
     try {
       const response = await fetch('http://localhost:3333/auth/login', {
@@ -125,34 +141,27 @@ export default function App() {
         throw new Error(data.error || "Erro ao fazer login");
       }
 
-      // 1. Salva Token e Dados do Usuário
       localStorage.setItem('stoq_token', data.token);
       localStorage.setItem('stoq_user_name', data.user.name);
       localStorage.setItem('stoq_user_role', data.user.role);
       localStorage.setItem('stoq_store_plan', data.user.plan || 'FREE');
       
-      // Salva a data de criação da loja para calcular os dias restantes
       if (data.user.storeCreatedAt) {
           localStorage.setItem('stoq_store_created_at', data.user.storeCreatedAt);
       }
       
       setUser({
           ...data.user,
-          storeCreatedAt: data.user.storeCreatedAt // Garante que o estado tenha a data
+          storeCreatedAt: data.user.storeCreatedAt 
       });
 
-      // 2. Verifica se o usuário já tem loja e SALVA O ID
       if (data.storeId) {
           localStorage.setItem('stoq_store_id', data.storeId); 
-          
           const storeName = data.storeName || localStorage.getItem('stoq_store_name') || 'Minha Loja';
-          
           setActiveStoreName(storeName);
           localStorage.setItem('stoq_store_name', storeName);
-          
           setView('dashboard');
       } else {
-          // Usuário novo (sem loja) -> Manda criar
           localStorage.removeItem('stoq_store_id');
           setView('setup-store');
       }
@@ -163,7 +172,6 @@ export default function App() {
     }
   };
 
-  // --- CRIAR LOJA ---
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStoreName.trim()) return;
@@ -194,26 +202,22 @@ export default function App() {
             throw new Error(data.error || "Erro ao criar loja.");
         }
 
-        // 1. Atualiza o Token
         if (data.token) {
             localStorage.setItem('stoq_token', data.token);
         }
 
-        // 2. Salva dados da loja
-        const storeData = data.store || data; // Fallback se a estrutura variar
+        const storeData = data.store || data; 
         
         if (storeData) {
             localStorage.setItem('stoq_store_id', storeData.id);
             localStorage.setItem('stoq_store_name', storeData.name);
             localStorage.setItem('stoq_store_plan', 'FREE');
             
-            // Salva a data de criação recém gerada
             const now = new Date().toISOString();
             localStorage.setItem('stoq_store_created_at', storeData.createdAt || now);
             
             setActiveStoreName(storeData.name);
             
-            // Atualiza estado do usuário
             setUser((prev: any) => ({ 
                 ...prev, 
                 role: 'OWNER', 
@@ -238,6 +242,8 @@ export default function App() {
     setUser(null);
     setActiveStoreName('');
     setView('home');
+    // Limpa a URL caso esteja em uma rota específica
+    window.history.pushState({}, '', '/');
   };
 
   const commonProps = { 
@@ -250,9 +256,14 @@ export default function App() {
     currentTheme: theme
   };
 
-  // --- FUNÇÃO DE RENDERIZAÇÃO CENTRALIZADA (COM BLOQUEIO) ---
+  // --- RENDERIZAÇÃO CENTRALIZADA ---
   const renderContent = () => {
-      // Telas públicas (não precisam de verificação de plano)
+      // 1. ROTAS LEGAIS (PÚBLICAS)
+      if (view === 'terms') return <Legal type="terms" onBack={handleBackFromLegal} />;
+      if (view === 'privacy') return <Legal type="privacy" onBack={handleBackFromLegal} />;
+      if (view === 'lgpd') return <Legal type="lgpd" onBack={handleBackFromLegal} />;
+
+      // 2. SETUP (Privado, mas sem loja)
       if (view === 'setup-store') {
           return (
             <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
@@ -305,6 +316,7 @@ export default function App() {
         );
       }
 
+      // 3. AUTH (Pública)
       if (view === 'login' || view === 'signup') {
           return (
             <Auth 
@@ -313,20 +325,20 @@ export default function App() {
               formData={authData} 
               setFormData={setAuthData}
               onLoginSubmit={handleLogin}
+              onOpenLegal={handleOpenLegal} // <--- PASSAMOS AQUI A FUNÇÃO DE ABRIR TERMOS
             />
           );
       }
 
-      // --- VERIFICAÇÃO DE BLOQUEIO PARA TELAS PRIVADAS ---
+      // 4. TELAS DO SISTEMA (Privadas + Checagem de Assinatura)
       const isAllowed = checkSubscriptionStatus();
       
-      // Se não permitido, e não está na tela de assinatura ou settings (para logout), bloqueia!
+      // Bloqueio de Assinatura
       if (!isAllowed && view !== 'subscription' && view !== 'settings') {
-           // Se tentar acessar dashboard bloqueado, mostra Assinatura travada
            return <Subscription {...commonProps} isLocked={true} />;
       }
 
-      // Telas Normais
+      // Rotas do Painel
       if (view === 'dashboard') return <Dashboard {...commonProps} />;
       if (view === 'products') return <Products {...commonProps} />;
       if (view === 'stock') return <Stock {...commonProps} />;
@@ -339,18 +351,20 @@ export default function App() {
       if (view === 'admin') return <SuperAdmin {...commonProps} />;
       if (view === 'cashflow') return <CashFlow {...commonProps} />;
       if (view === 'expenses') return <Expenses {...commonProps} />;
-      if (view === 'terms') return <Legal type="terms" onBack={() => setView('home')} />;
-      if (view === 'privacy') return <Legal type="privacy" onBack={() => setView('home')} />;
-      if (view === 'lgpd') return <Legal type="lgpd" onBack={() => setView('home')} />;
-
       
-      
-      // Home Page (Default)
+      // 5. HOME (Padrão)
       return <Home 
-    onLogin={() => setView('login')} 
-    onSignup={() => setView('signup')} 
-    onNavigate={setView} // <--- Passando a função
-/>;
+          onLogin={() => setView('login')} 
+          onSignup={() => setView('signup')} 
+          onNavigate={(page: any) => {
+              // Se for página legal, usa a função inteligente que salva o histórico
+              if (['terms', 'privacy', 'lgpd'].includes(page)) {
+                  handleOpenLegal(page);
+              } else {
+                  setView(page);
+              }
+          }} 
+      />;
   };
 
   return renderContent();

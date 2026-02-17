@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mail, Lock, User, ArrowLeft, Check, AlertCircle, CheckCircle2, Send } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Check, AlertCircle, CheckCircle2, Send, CheckSquare, Loader2 } from 'lucide-react';
 
 // Ícone do Google
 const GoogleIcon = () => (
@@ -11,7 +11,8 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit }: any) => {
+// Adicionei onOpenLegal na desestruturação das props
+export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOpenLegal }: any) => {
   
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null); 
@@ -19,6 +20,9 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit }: an
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false); // Loading do reenvio
   
+  // NOVO: Estado para aceitar os termos
+  const [acceptTerms, setAcceptTerms] = useState(false);
+
   // Controla se o email de confirmação foi enviado (Cadastro)
   const [isEmailSent, setIsEmailSent] = useState(false);
 
@@ -124,6 +128,12 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit }: an
 
     if (mode === 'signup') {
         if (!formData.name.trim()) { setError('Informe seu nome.'); return; }
+        
+        // --- VALIDAÇÃO DOS TERMOS ---
+        if (!acceptTerms) {
+            setError("Você precisa aceitar os Termos de Uso para criar uma conta.");
+            return;
+        }
 
         const allValid = Object.values(passValidations).every(Boolean);
         if (!allValid) { setError('Sua senha não atende aos requisitos de segurança.'); return; }
@@ -292,7 +302,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit }: an
                 ref={passwordRef}
                 type="password" 
                 className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" 
-                placeholder="Senha forte"
+                placeholder="Senha"
                 value={formData.password} 
                 onChange={(e) => handleChange('password', e.target.value)}
                 autoComplete="current-password"
@@ -336,9 +346,45 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit }: an
               </div>
             </div>
           )}
+          
+          {/* --- CHECKBOX DE TERMOS (ATUALIZADO) --- */}
+          {mode === 'signup' && (
+            <div className="flex items-start gap-3 mt-4 animate-in slide-in-from-top-2 fade-in">
+                <button 
+                    type="button"
+                    onClick={() => setAcceptTerms(!acceptTerms)}
+                    className={`mt-0.5 min-w-[20px] w-5 h-5 rounded border flex items-center justify-center transition ${
+                        acceptTerms 
+                        ? 'bg-blue-600 border-blue-600 text-white' 
+                        : 'bg-white border-slate-300 text-transparent hover:border-blue-400'
+                    }`}
+                >
+                    <CheckSquare size={14} />
+                </button>
+                <p className="text-xs text-slate-500 leading-relaxed text-left">
+                    Li e concordo com os{' '}
+                    <button 
+                        type="button" 
+                        onClick={() => onOpenLegal('terms')} // <--- Mudou aqui
+                        className="text-blue-600 font-bold hover:underline"
+                    >
+                        Termos de Uso
+                    </button>{' '}
+                    e{' '}
+                    <button 
+                        type="button" 
+                        onClick={() => onOpenLegal('privacy')} // <--- Mudou aqui
+                        className="text-blue-600 font-bold hover:underline"
+                    >
+                        Política de Privacidade
+                    </button>{' '}
+                    do Stoq+.
+                </p>
+            </div>
+          )}
 
           <button disabled={isLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition mt-6 shadow-lg shadow-slate-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-            {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (mode === 'login' ? 'Acessar Painel' : 'Criar Conta')}
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (mode === 'login' ? 'Acessar Painel' : 'Criar Conta')}
           </button>
         </form>
 
