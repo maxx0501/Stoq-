@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 // Ícones
 import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2 } from 'lucide-react';
 
@@ -148,7 +149,7 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://localhost:3333/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: authData.email, password: authData.password })

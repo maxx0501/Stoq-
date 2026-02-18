@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Mail, Lock, User, ArrowLeft, Check, AlertCircle, CheckCircle2, Send, CheckSquare, Loader2 } from 'lucide-react';
 
 // Ícone do Google
@@ -47,7 +48,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
         
         // Força um reload para o App.tsx pegar a sessão
         // 3. Busca dados do usuário para decidir para onde ir (SEM RELOAD)
-        fetch('http://localhost:3333/auth/me', {
+        fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${googleToken}` }
         })
         .then(res => res.json())
@@ -164,7 +165,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
 
     if (mode === 'signup') {
       try {
-          const res = await fetch('http://localhost:3333/auth/signup', {
+          const res = await fetch(`${API_URL}/auth/signup`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -205,7 +206,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
   // --- AÇÃO DO BOTÃO GOOGLE ---
   const handleGoogleLogin = () => {
       // Redireciona o navegador para a rota do Backend que iniciamos no passo 2
-      window.location.href = 'http://localhost:3333/auth/google';
+      window.location.href = `${API_URL}/auth/google`;
   };
 
   // ... (O restante do render - isEmailSent e formulários - permanece igual ao seu código original)
