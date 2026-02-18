@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Lock, TrendingUp, TrendingDown, AlertTriangle, Calculator, CheckCircle, X, History, Wallet, EyeOff } from 'lucide-react';
@@ -43,7 +44,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
     try {
         // 1. Status do Caixa Atual
-        const sessionRes = await fetch('http://localhost:3333/cashflow/status', { headers });
+        const sessionRes = await fetch(`${API_URL}/cashflow/status`, { headers });
         const session = await sessionRes.json();
         
         if (session && session.status === 'OPEN') {
@@ -56,7 +57,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
         }
 
         // 2. Resumo de Vendas do Dia
-        const summaryRes = await fetch('http://localhost:3333/cashflow/summary', { headers });
+        const summaryRes = await fetch(`${API_URL}/cashflow/summary`, { headers });
         const summaryData = await summaryRes.json();
         const data = summaryData.summary || summaryData; 
         
@@ -68,7 +69,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
         });
 
         // 3. Histórico de Fechamentos
-        const histRes = await fetch('http://localhost:3333/cashflow/history', { headers });
+        const histRes = await fetch(`${API_URL}/cashflow/history`, { headers });
         const histData = await histRes.json();
         
         if (Array.isArray(histData)) {
@@ -97,7 +98,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const val = inputOpening ? parseFloat(inputOpening.replace(',', '.')) : 0;
     const token = localStorage.getItem('stoq_token');
     
-    await fetch('http://localhost:3333/cashflow/open', {
+    await fetch(`${API_URL}/cashflow/open`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ openingBalance: val })
@@ -112,7 +113,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const val = parseFloat(moveValue.replace(',', '.'));
     const token = localStorage.getItem('stoq_token');
 
-    await fetch('http://localhost:3333/cashflow/movement', {
+    await fetch(`${API_URL}/cashflow/movement`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ type: modalType, value: val, description: moveDesc }) 
@@ -134,7 +135,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const token = localStorage.getItem('stoq_token');
     const val = parseFloat(countedMoney.replace(',', '.'));
 
-    const res = await fetch('http://localhost:3333/cashflow/close', {
+    const res = await fetch(`${API_URL}/cashflow/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ countedMoney: val })
@@ -150,7 +151,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
   const handleReset = async () => {
     const token = localStorage.getItem('stoq_token');
-    await fetch('http://localhost:3333/cashflow/reset', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+    await fetch(`${API_URL}/cashflow/reset`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
     
     setOpeningBalance(0);
     setBleeds([]);

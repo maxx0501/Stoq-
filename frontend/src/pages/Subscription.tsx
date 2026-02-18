@@ -1,4 +1,5 @@
 import { useState } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { 
@@ -21,7 +22,7 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
         }
         
         // Chama a rota que criamos no Backend
-        const response = await fetch('http://localhost:3333/payments/create-checkout', {
+        const response = await fetch(`${API_URL}/payments/create-checkout`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Package, Plus, Search, Image as ImageIcon, AlertCircle, EyeOff, X, Edit, Trash2, Upload, Filter, Tag, ChevronLeft, ChevronRight, CheckCircle, AlertOctagon } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
@@ -33,7 +34,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('stoq_token');
-      const res = await fetch('http://localhost:3333/products', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch('${API_URL}/products', { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) setProducts(data);
     } catch (error) { console.error("Erro conexão", error); }
@@ -77,7 +78,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const confirmDelete = async () => {
     if (!productToDelete) return;
     const token = localStorage.getItem('stoq_token');
-    await fetch(`http://localhost:3333/products/${productToDelete}`, {
+    await fetch(`${API_URL}/products/${productToDelete}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -89,7 +90,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem('stoq_token');
-    const url = isEditing ? `http://localhost:3333/products/${currentId}` : 'http://localhost:3333/products';
+    const url = isEditing ? `${API_URL}/products/${currentId}` : '${API_URL}/products';
     const method = isEditing ? 'PUT' : 'POST';
 
     try {

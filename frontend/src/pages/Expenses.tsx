@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Plus, Trash2, TrendingDown, CheckCircle, Circle, Calendar, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -28,7 +29,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const fetchExpenses = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-        const res = await fetch('http://localhost:3333/expenses', {
+        const res = await fetch(`${API_URL}/expenses`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -78,7 +79,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const token = localStorage.getItem('stoq_token');
     
     try {
-        await fetch('http://localhost:3333/expenses', {
+        await fetch(`${API_URL}/expenses`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ 
@@ -101,7 +102,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const token = localStorage.getItem('stoq_token');
     setExpenses(prev => prev.map(e => e.id === id ? { ...e, paid: !e.paid } : e));
 
-    await fetch(`http://localhost:3333/expenses/${id}/toggle`, {
+    await fetch(`${API_URL}/expenses/${id}/toggle`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -113,7 +114,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const token = localStorage.getItem('stoq_token');
     setExpenses(prev => prev.filter(e => e.id !== id)); 
 
-    await fetch(`http://localhost:3333/expenses/${id}`, {
+    await fetch(`${API_URL}/expenses/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
     });

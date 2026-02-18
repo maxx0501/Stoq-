@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Store, Shield, Save, CheckCircle, Trash2, AlertTriangle, X, Loader2, Check } from 'lucide-react';
@@ -57,7 +58,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
     setIsLoading(true);
     try {
         const token = localStorage.getItem('stoq_token');
-        const response = await fetch('http://localhost:3333/stores/me', {
+        const response = await fetch(`${API_URL}/stores/me`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name: storeData.name })
@@ -97,7 +98,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
     setIsLoading(true);
     try {
         const token = localStorage.getItem('stoq_token');
-        const response = await fetch('http://localhost:3333/auth/change-password', {
+        const response = await fetch(`${API_URL}/auth/change-password`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ newPassword: securityData.newPassword })
@@ -121,7 +122,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const executeAccountDeletion = async () => {
       try {
           const token = localStorage.getItem('stoq_token');
-          const response = await fetch('http://localhost:3333/auth/me', {
+          const response = await fetch(`${API_URL}/auth/me`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` }
           });

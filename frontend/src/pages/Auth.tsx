@@ -121,7 +121,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
       setError(null);
       setSuccessMsg(null);
       try {
-          const res = await fetch('http://localhost:3333/auth/resend-code', {
+          const res = await fetch(`${API_URL}/auth/resend-code`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: formData.email })

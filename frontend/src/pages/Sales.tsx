@@ -3,6 +3,7 @@ import { ShoppingCart, Search, Plus, Minus, Trash2, Package, X, DollarSign, Tren
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 
 export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   // --- ESTADOS ---
@@ -34,20 +35,20 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const fetchMyMetrics = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-        const res = await fetch('http://localhost:3333/my-sales-metrics', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/my-sales-metrics`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setMetrics(await res.json());
     } catch (error) { console.error(error); }
   };
 
   const fetchProducts = async () => {
     const token = localStorage.getItem('stoq_token');
-    const res = await fetch('http://localhost:3333/products', { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/products`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) setProducts(await res.json());
   };
 
   const fetchCustomers = async () => {
     const token = localStorage.getItem('stoq_token');
-    const res = await fetch('http://localhost:3333/customers', { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) setCustomers(await res.json());
   };
 
@@ -108,7 +109,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
           paymentMethod: saleMode === 'FIADO' ? 'CREDIT_STORE' : paymentMethod
       };
 
-      const res = await fetch('http://localhost:3333/sales', {
+      const res = await fetch(`${API_URL}/sales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(payload)

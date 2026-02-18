@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Users, UserPlus, ShieldCheck, Trash2, Edit, CheckCircle, XCircle, BarChart3, Activity, ShoppingBag, Package } from 'lucide-react';
@@ -24,13 +25,13 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
 
   const fetchTeam = async () => {
     const token = localStorage.getItem('stoq_token');
-    const res = await fetch('http://localhost:3333/sellers', { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/sellers`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) setTeam(await res.json());
   };
 
   const fetchAnalytics = async () => {
     const token = localStorage.getItem('stoq_token');
-    const res = await fetch('http://localhost:3333/team/analytics', { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/team/analytics`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (res.ok) setAnalytics(await res.json());
   };
 
@@ -53,7 +54,7 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
   const handleDelete = async (id: string) => {
     if (confirm("Demitir este funcionário?")) {
       const token = localStorage.getItem('stoq_token');
-      await fetch(`http://localhost:3333/sellers/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+      await fetch(`${API_URL}/sellers/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       fetchTeam();
     }
   };
@@ -61,7 +62,7 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem('stoq_token');
-    const url = isEditMode ? `http://localhost:3333/team/member/${targetMember.id}` : 'http://localhost:3333/sellers';
+    const url = isEditMode ? `${API_URL}/team/member/${targetMember.id}` : `${API_URL}/sellers`;
     const method = isEditMode ? 'PUT' : 'POST';
 
     try {

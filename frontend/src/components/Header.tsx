@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock } from 'lucide-react';
 
 export const Header = ({ user, storeName, onLogout, setUser }: any) => {
@@ -53,7 +54,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
 
       try {
           // 1. Estoque Baixo
-          const resProducts = await fetch('http://localhost:3333/products', { headers: { 'Authorization': `Bearer ${token}` } });
+          const resProducts = await fetch(`${API_URL}/products`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (resProducts.ok) {
               const products = await resProducts.json();
               const lowStock = products.filter((p: any) => p.stock <= 5);
@@ -69,7 +70,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
           }
 
           // 2. Despesas Atrasadas
-          const resExpenses = await fetch('http://localhost:3333/expenses', { headers: { 'Authorization': `Bearer ${token}` } });
+          const resExpenses = await fetch(`${API_URL}/expenses`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (resExpenses.ok) {
               const expenses = await resExpenses.json();
               const lateExpenses = expenses.filter((e: any) => !e.paid && new Date(e.dueDate) < new Date());
@@ -85,7 +86,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
           }
 
           // 3. Fiados Atrasados
-          const resDebts = await fetch('http://localhost:3333/sales/debts', { headers: { 'Authorization': `Bearer ${token}` } });
+          const resDebts = await fetch(`${API_URL}/sales/debts`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (resDebts.ok) {
               const debts = await resDebts.json();
               const lateDebts = debts.filter((d: any) => new Date(d.dueDate) < new Date());
@@ -135,7 +136,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
         data.append('name', formData.name);
         if (selectedFile) data.append('avatar', selectedFile);
         
-        const res = await fetch('http://localhost:3333/users/me', { 
+        const res = await fetch(`${API_URL}/users/me`, { 
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}` },
             body: data

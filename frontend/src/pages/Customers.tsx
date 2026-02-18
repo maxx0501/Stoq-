@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Users, Search, Plus, Trash2, Edit, Phone, User, CheckCircle, FileText, CalendarClock, DollarSign, ChevronRight, X, Printer, Loader2, AlertCircle } from 'lucide-react';
@@ -39,7 +40,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
     const token = localStorage.getItem('stoq_token');
     try {
         setIsLoading(true);
-        const res = await fetch('http://localhost:3333/customers', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/customers`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setCustomers(await res.json());
     } catch (e) { console.error(e); } finally { setIsLoading(false); }
   };
@@ -47,7 +48,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
   const fetchDebts = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-        const res = await fetch('http://localhost:3333/sales/debts', { headers: { 'Authorization': `Bearer ${token}` } });
+        const res = await fetch(`${API_URL}/sales/debts`, { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) setDebts(await res.json());
     } catch (e) { console.error(e); }
   };
@@ -69,7 +70,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
       
       const token = localStorage.getItem('stoq_token');
       try {
-          const res = await fetch(`http://localhost:3333/customers/${customer.id}/history`, { headers: { 'Authorization': `Bearer ${token}` } });
+          const res = await fetch(`${API_URL}/customers/${customer.id}/history`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (res.ok) setSelectedCustomerHistory(await res.json());
       } catch (error) {
           console.error("Erro ao carregar histórico", error);
@@ -87,7 +88,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
       const token = localStorage.getItem('stoq_token');
       
       try {
-          const res = await fetch(`http://localhost:3333/sales/${selectedDebt.id}/pay`, { 
+          const res = await fetch(`${API_URL}/sales/${selectedDebt.id}/pay`, { 
               method: 'PUT',
               headers: { 'Authorization': `Bearer ${token}` } 
           });
@@ -119,7 +120,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
 
     setIsSaving(true);
     const token = localStorage.getItem('stoq_token');
-    const url = isEditMode ? `http://localhost:3333/customers/${form.id}` : 'http://localhost:3333/customers';
+    const url = isEditMode ? `${API_URL}/customers/${form.id}` : `${API_URL}/customers`;
     const method = isEditMode ? 'PUT' : 'POST';
 
     try {
@@ -155,7 +156,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
     
     const token = localStorage.getItem('stoq_token');
     try {
-        const res = await fetch(`http://localhost:3333/customers/${id}`, { 
+        const res = await fetch(`${API_URL}/customers/${id}`, { 
             method: 'DELETE', 
             headers: { 'Authorization': `Bearer ${token}` } 
         });

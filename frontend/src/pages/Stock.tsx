@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Package, Search, ArrowDownCircle, ArrowUpCircle, AlertTriangle, CheckCircle, TrendingUp, ChevronLeft, ChevronRight, History, Calendar, Trash2 } from 'lucide-react';
@@ -35,7 +36,7 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const fetchStock = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-      const res = await fetch('http://localhost:3333/products', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/products`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setProducts(await res.json());
     } catch (error) { console.error(error); }
   };
@@ -43,7 +44,7 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const fetchHistory = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-      const res = await fetch('http://localhost:3333/stock/history', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/stock/history`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setHistory(await res.json());
     } catch (error) { console.error(error); }
   };
@@ -64,7 +65,7 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const confirmTransaction = async () => {
     try {
       const token = localStorage.getItem('stoq_token');
-      const res = await fetch('http://localhost:3333/stock/entry', {
+      const res = await fetch(`${API_URL}/stock/entry`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ 

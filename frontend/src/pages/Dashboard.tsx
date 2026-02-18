@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { WIDGET_REGISTRY } from '../components/dashboard/WidgetRegistry';
@@ -36,7 +37,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
     try {
       const token = localStorage.getItem('stoq_token');
       // Forçamos o periodo para 7days
-      const res = await fetch(`http://localhost:3333/dashboard-metrics?period=7days`, {
+      const res = await fetch(`${API_URL}/dashboard-metrics?period=7days`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
@@ -48,7 +49,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
     try {
         const token = localStorage.getItem('stoq_token');
         // A rota advanced continua funcionando para os widgets extras
-        const res = await fetch('http://localhost:3333/dashboard-metrics/advanced', {
+        const res = await fetch(`${API_URL}/dashboard-metrics/advanced`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const json = await res.json();

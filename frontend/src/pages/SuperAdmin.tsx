@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { LayoutDashboard, TrendingUp, Users, Store, Trash2, Search, Crown, ShieldAlert } from 'lucide-react';
@@ -15,7 +16,7 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
     const token = localStorage.getItem('stoq_token');
     try {
         console.log('Fetching admin dashboard...', { token: token?.substring(0, 20) + '...' });
-        const res = await fetch('http://localhost:3333/admin/dashboard', { 
+        const res = await fetch(`${API_URL}/admin/dashboard`, { 
             headers: { 'Authorization': `Bearer ${token}` } 
         });
         console.log('Response status:', res.status);
@@ -36,7 +37,7 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
 
     const token = localStorage.getItem('stoq_token');
     try {
-        await fetch(`http://localhost:3333/admin/store/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        await fetch(`${API_URL}/admin/store/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
         alert("Loja e usuários deletados com sucesso.");
         fetchAdminData();
     } catch (e) { alert("Erro ao deletar."); }

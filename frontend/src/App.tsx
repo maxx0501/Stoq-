@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_URL = import.meta.env.VITE_API_URL || '${API_URL}';
 // Ícones
 import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2 } from 'lucide-react';
 
@@ -67,7 +67,7 @@ export default function App() {
         localStorage.setItem('stoq_token', googleToken);
         if (userName) localStorage.setItem('stoq_user_name', userName);
 
-        fetch('http://localhost:3333/auth/me', {
+        fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${googleToken}` }
         })
         .then(res => res.json())
@@ -105,7 +105,7 @@ export default function App() {
     
     if (token) {
         // Fetch /me para pegar o status atualizado do mustChangePassword
-        fetch('http://localhost:3333/auth/me', {
+        fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
         .then(res => res.json())
@@ -187,7 +187,7 @@ export default function App() {
 
     try {
         const token = localStorage.getItem('stoq_token');
-        const res = await fetch('http://localhost:3333/stores', { 
+        const res = await fetch('${API_URL}/stores', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name: newStoreName })
@@ -225,7 +225,7 @@ export default function App() {
       setForcePasswordLoading(true);
       try {
           const token = localStorage.getItem('stoq_token');
-          const res = await fetch('http://localhost:3333/auth/change-password', {
+          const res = await fetch(`${API_URL}/auth/change-password`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ newPassword: forceNewPass })

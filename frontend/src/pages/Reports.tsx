@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Download, Calendar, TrendingUp, DollarSign, PieChart as PieIcon } from 'lucide-react';
@@ -15,7 +16,7 @@ export const Reports = ({ onNavigate, onLogout, user, storeName, setUser }: any)
   const fetchReports = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-      const res = await fetch(`http://localhost:3333/reports?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/reports?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) setData(await res.json());
     } catch (error) { console.error(error); }
   };
