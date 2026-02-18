@@ -16,7 +16,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   const [isLoading, setIsLoading] = useState(true);
   
   // FIXO: Removemos a opção de trocar, agora é sempre 7 dias
-  const chartPeriod = '7days';
+//   const chartPeriod = '7days';
   
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [activeWidgets, setActiveWidgets] = useState<string[]>(() => {
