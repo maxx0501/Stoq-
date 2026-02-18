@@ -126,8 +126,17 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: formData.email })
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
+          
+          // Tenta fazer parse de JSON, com fallback para texto
+          let data;
+          try {
+              data = await res.json();
+          } catch {
+              const text = await res.text();
+              throw new Error(text || 'Erro desconhecido ao reenviar código');
+          }
+          
+          if (!res.ok) throw new Error(data.error || 'Erro ao reenviar código');
           setSuccessMsg("Código reenviado! Verifique sua caixa de entrada.");
           setShowResendLink(false);
       } catch (err: any) {
@@ -174,7 +183,16 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                   password: formData.password
               })
           });
-          const data = await res.json();
+          
+          // Tenta fazer parse de JSON, com fallback para texto
+          let data;
+          try {
+              data = await res.json();
+          } catch {
+              const text = await res.text();
+              throw new Error(text || 'Erro desconhecido ao criar conta');
+          }
+          
           if (res.status === 409 && data.code === 'EMAIL_NOT_VERIFIED_YET') {
               setError(data.error);
               setShowResendLink(true); 

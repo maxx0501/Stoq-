@@ -155,7 +155,14 @@ export default function App() {
         body: JSON.stringify({ email: authData.email, password: authData.password })
       });
 
-      const data = await response.json();
+      // Tenta fazer parse de JSON, com fallback para texto
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        const text = await response.text();
+        throw new Error(text || 'Erro ao fazer login');
+      }
 
       if (!response.ok) throw new Error(data.error || "Erro ao fazer login");
 
