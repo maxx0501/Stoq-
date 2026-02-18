@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   const [team, setTeam] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>({ ranking: [], activityLog: [] });
+  const [isLoading, setIsLoading] = useState(false);
   
   // Modais
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,16 +54,38 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
 
   const handleDelete = async (id: string) => {
     if (confirm("Demitir este funcionário?")) {
-      const token = localStorage.getItem('stoq_token');
-      await fetch(`${API_URL}/sellers/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-      fetchTeam();
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('stoq_token');
+        const res = await fetch(`${API_URL}/sellers/${id}`, { 
+          method: 'DELETE', 
+          headers: { 'Authorization': `Bearer ${token}` } 
+        });
+        
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: 'Erro ao deletar' }));
+          throw new Error(data.error || 'Erro ao deletar');
+        }
+        
+        setSuccessMessage("Funcionário removido!");
+        setShowSuccessModal(true);
+        setTimeout(() => setShowSuccessModal(false), 2000);
+        await fetchTeam();
+      } catch (error: any) {
+        alert(error.message || 'Erro ao deletar funcionário');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Previne cliques múltiplos
+    
+    setIsLoading(true);
     const token = localStorage.getItem('stoq_token');
-    const url = isEditMode ? `${API_URL}/team/member/${targetMember.id}` : `${API_URL}/sellers`;
+    const url = isEditMode ? `${API_URL}/team/member/${targetMember.id}` : `${API_URL}/team`;
     const method = isEditMode ? 'PUT' : 'POST';
 
     try {
@@ -72,18 +95,30 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
             body: JSON.stringify(form)
         });
 
+        // Parse com fallback
+        let data;
+        try {
+            data = await res.json();
+        } catch {
+            data = { ok: res.ok };
+        }
+
         if (res.ok) {
             // SUCESSO VISUAL
             setIsModalOpen(false);
             setSuccessMessage(isEditMode ? "Permissões atualizadas!" : "Membro adicionado!");
             setShowSuccessModal(true);
-            fetchTeam();
+            await fetchTeam();
             // Fecha sozinho
             setTimeout(() => setShowSuccessModal(false), 2000);
         } else {
-            alert("Erro ao salvar.");
+            alert(data.error || "Erro ao salvar.");
         }
-    } catch (error) { alert("Erro conexão"); }
+    } catch (error: any) { 
+        alert(error.message || "Erro conexão"); 
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
@@ -217,7 +252,7 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
                         )}
                         <div className="flex gap-3 pt-4">
                             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button>
-                            <button type="submit" className="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 shadow-lg">Salvar</button>
+                            <button type="submit" disabled={isLoading} className="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">{isLoading ? 'Salvando...' : 'Salvar'}</button>
                         </div>
                     </form>
                 </div>
