@@ -34,7 +34,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const fetchProducts = async () => {
     try {
       const token = localStorage.getItem('stoq_token');
-      const res = await fetch('${API_URL}/products', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/products`, { headers: { 'Authorization': `Bearer ${token}` } });
       const data = await res.json();
       if (res.ok) setProducts(data);
     } catch (error) { console.error("Erro conexão", error); }
@@ -90,7 +90,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = localStorage.getItem('stoq_token');
-    const url = isEditing ? `${API_URL}/products/${currentId}` : '${API_URL}/products';
+    const url = isEditing ? `${API_URL}/products/${currentId}` : `${API_URL}/products`;
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
