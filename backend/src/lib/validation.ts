@@ -87,7 +87,7 @@ export const validateRequest = async <T>(schema: z.ZodSchema, data: any): Promis
         return schema.parse(data) as T;
     } catch (error) {
         if (error instanceof z.ZodError) {
-            throw new ValidationError(error.errors[0]?.message || 'Validação falhou');
+            throw new ValidationError(error.issues[0]?.message || 'Validação falhou');
         }
         throw error;
     }
