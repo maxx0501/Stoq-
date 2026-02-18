@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Users, Search, Plus, Trash2, Edit, Phone, User, CheckCircle, FileText, CalendarClock, DollarSign, AlertCircle, ChevronRight, X, Printer, MapPin, Mail, Loader2 } from 'lucide-react';
+import { Users, Search, Plus, Trash2, Edit, Phone, User, CheckCircle, FileText, CalendarClock, DollarSign, ChevronRight, X, Printer, Loader2, AlertCircle } from 'lucide-react';
 import { printReceipt } from '../utils/printReceipt';
 
 export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {

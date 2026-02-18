@@ -29,7 +29,9 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
   };
 
   const handleDeleteStore = async (id: string, name: string) => {
-    const confirmName = prompt(`⚠️ PERIGO: Você está prestes a apagar a loja "${name}"\n\nISTO VAI DELETAR:\n✗ Todos os dados da loja (produtos, vendas, etc)\n✗ Todos os ${data?.stores.find(s => s.id === id)?.stats.users || 0} usuários associados\n\nUnderstanding the consequencespara confirmar, digite o nome da loja:`);
+    const targetStore = data?.stores.find((s: any) => s.id === id);
+    const userCount = targetStore?.stats.users || 0;
+    const confirmName = prompt(`⚠️ PERIGO: Você está prestes a apagar a loja "${name}"\n\nISTO VAI DELETAR:\n✗ Todos os dados da loja (produtos, vendas, etc)\n✗ Todos os ${userCount} usuários associados\n\nPara confirmar, digite o nome da loja:`);
     if (confirmName !== name) return alert("Nome incorreto. Ação cancelada.");
 
     const token = localStorage.getItem('stoq_token');

@@ -30,7 +30,6 @@ router.post('/', async (req, res) => {
                     name, 
                     email, 
                     passwordHash: hash,
-                    mustChangePassword: true, // <--- AQUI: OBRIGA TROCAR A SENHA
                     isVerified: true // Opcional: já marca como verificado pois o dono criou
                 } 
             });

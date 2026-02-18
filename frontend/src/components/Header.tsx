@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check } from 'lucide-react';
+import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock } from 'lucide-react';
 
 export const Header = ({ user, storeName, onLogout, setUser }: any) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -7,20 +7,21 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
   
   // Modais
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); // Nova Modal de Sucesso
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   
+  // Notificações
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
   
   // Dados do Formulário
   const [formData, setFormData] = useState({ name: '', email: '', avatarUrl: '' });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // <--- ARQUIVO REAL
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sincroniza dados sempre que o user muda
   useEffect(() => {
     if (user) {
         setFormData({ 
@@ -28,6 +29,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
             email: user.email || '', 
             avatarUrl: user.avatarUrl || '' 
         });
+        fetchNotifications(); // Busca ao carregar
     }
   }, [user]);
 
@@ -41,6 +43,72 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // --- BUSCA NOTIFICAÇÕES REAIS ---
+  const fetchNotifications = async () => {
+      const token = localStorage.getItem('stoq_token');
+      if (!token) return;
+
+      setIsLoadingNotifs(true);
+      const newNotifs = [];
+
+      try {
+          // 1. Estoque Baixo
+          const resProducts = await fetch('http://localhost:3333/products', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (resProducts.ok) {
+              const products = await resProducts.json();
+              const lowStock = products.filter((p: any) => p.stock <= 5);
+              if (lowStock.length > 0) {
+                  newNotifs.push({
+                      id: 'stock',
+                      type: 'warning',
+                      title: 'Estoque Baixo',
+                      message: `${lowStock.length} produtos estão acabando.`,
+                      icon: <Package size={16} className="text-orange-500"/>
+                  });
+              }
+          }
+
+          // 2. Despesas Atrasadas
+          const resExpenses = await fetch('http://localhost:3333/expenses', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (resExpenses.ok) {
+              const expenses = await resExpenses.json();
+              const lateExpenses = expenses.filter((e: any) => !e.paid && new Date(e.dueDate) < new Date());
+              if (lateExpenses.length > 0) {
+                  newNotifs.push({
+                      id: 'expense',
+                      type: 'danger',
+                      title: 'Contas Atrasadas',
+                      message: `Você tem ${lateExpenses.length} contas vencidas.`,
+                      icon: <DollarSign size={16} className="text-red-500"/>
+                  });
+              }
+          }
+
+          // 3. Fiados Atrasados
+          const resDebts = await fetch('http://localhost:3333/sales/debts', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (resDebts.ok) {
+              const debts = await resDebts.json();
+              const lateDebts = debts.filter((d: any) => new Date(d.dueDate) < new Date());
+              if (lateDebts.length > 0) {
+                  newNotifs.push({
+                      id: 'debt',
+                      type: 'warning',
+                      title: 'Fiados Vencidos',
+                      message: `${lateDebts.length} clientes estão atrasados.`,
+                      icon: <CalendarClock size={16} className="text-purple-500"/>
+                  });
+              }
+          }
+
+          setNotifications(newNotifs);
+
+      } catch (error) {
+          console.error("Erro ao buscar notificações", error);
+      } finally {
+          setIsLoadingNotifs(false);
+      }
+  };
+
   const getRoleLabel = (role: string) => {
     if (role === 'OWNER') return 'PROPRIETÁRIO';
     if (role === 'MANAGER') return 'GERENTE';
@@ -50,73 +118,55 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file); // <--- GUARDA O ARQUIVO REAL PARA ENVIAR DEPOIS
-      
-      // Cria preview apenas para mostrar na tela agora
+      setSelectedFile(file); 
       const reader = new FileReader();
       reader.onloadend = () => setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
       reader.readAsDataURL(file);
     }
   };
 
-  // --- SALVAR PERFIL (CORRIGIDO PARA FORMDATA) ---
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
     try {
         const token = localStorage.getItem('stoq_token');
-        
-        // 1. Cria o FormData (Necessário para enviar arquivos)
         const data = new FormData();
         data.append('name', formData.name);
-        if (selectedFile) {
-            data.append('avatar', selectedFile); // 'avatar' deve bater com o backend
-        }
+        if (selectedFile) data.append('avatar', selectedFile);
         
         const res = await fetch('http://localhost:3333/users/me', { 
             method: 'PUT',
-            headers: { 
-                // NÃO COLOCAR Content-Type aqui! O navegador define sozinho para multipart/form-data
-                'Authorization': `Bearer ${token}` 
-            },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: data
         });
         
         if (res.ok) {
             const updatedUser = await res.json();
-            
-            // Atualiza o estado global
             if (setUser) {
-                // Adiciona um timestamp na URL da imagem para forçar o navegador a recarregar a imagem nova (cache busting)
                 const freshUser = {
                     ...updatedUser,
                     avatarUrl: updatedUser.avatarUrl ? `${updatedUser.avatarUrl}?t=${Date.now()}` : null
                 };
                 setUser((prev: any) => ({ ...prev, ...freshUser }));
             }
-            
-            // Atualiza LocalStorage
             localStorage.setItem('stoq_user_name', updatedUser.name);
             if (updatedUser.avatarUrl) localStorage.setItem('stoq_user_avatar', updatedUser.avatarUrl);
 
-            // Troca as modais
-            setIsEditModalOpen(false); // Fecha edição
-            setIsSuccessModalOpen(true); // Abre sucesso
-
+            setIsEditModalOpen(false); 
+            setIsSuccessModalOpen(true); 
         } else { 
             const errorData = await res.json();
             alert("Erro ao atualizar: " + (errorData.error || "Tente novamente.")); 
         }
     } catch (error) { 
-        console.error(error);
         alert("Erro de conexão com o servidor."); 
     } finally { 
         setIsSaving(false); 
     }
   };
 
-  const dangerCount = notifications.filter(n => n.type === 'danger').length;
+  const notifCount = notifications.length;
 
   return (
     <>
@@ -140,13 +190,38 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
          
          {/* Notificações */}
          <div className="relative" ref={notifRef}>
-            <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
+            <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(); }} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
                 <Bell size={20} />
-                {dangerCount > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>}
+                {notifCount > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
             </button>
+            
             {isNotifOpen && (
-                <div className="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-4 z-50 text-center text-slate-400 text-xs animate-in fade-in zoom-in duration-200">
-                    Nenhuma notificação no momento.
+                <div className="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                    <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Notificações</span>
+                        {isLoadingNotifs && <Loader2 size={12} className="animate-spin text-slate-400"/>}
+                    </div>
+                    
+                    <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 && !isLoadingNotifs ? (
+                            <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                                <CheckCircle size={24} className="text-emerald-100"/>
+                                Tudo certo por aqui!
+                            </div>
+                        ) : (
+                            notifications.map((notif, idx) => (
+                                <div key={idx} className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition flex gap-3 items-start">
+                                    <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${notif.type === 'danger' ? 'bg-red-100' : 'bg-orange-100'}`}>
+                                        {notif.icon}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-700 leading-tight">{notif.title}</p>
+                                        <p className="text-xs text-slate-500 mt-0.5 leading-snug">{notif.message}</p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
          </div>
@@ -158,11 +233,8 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
                     {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="Avatar" /> : <span className="bg-blue-600 w-full h-full flex items-center justify-center">{user?.name?.[0] || 'U'}</span>}
                 </div>
                 <div className="text-left hidden md:block">
-
                     <p className="text-sm font-bold text-slate-700 leading-tight">{user?.name}</p>
-
                     <p className="text-[10px] font-black text-slate-400 tracking-widest uppercase mt-0.5">{getRoleLabel(user?.role)}</p>
-
                 </div>
                 <ChevronDown size={16} className={`text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
             </button>

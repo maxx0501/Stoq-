@@ -99,7 +99,6 @@ router.post('/login', async (req, res) => {
                 name: user.name, 
                 email: user.email, 
                 role: userRole, 
-                mustChangePassword: user.mustChangePassword,
                 isSuperAdmin: user.isSuperAdmin,
                 plan: storeLink?.store?.plan || 'FREE',
                 storeCreatedAt: storeLink?.store?.createdAt
@@ -123,8 +122,7 @@ router.put('/change-password', authMiddleware, async (req, res) => {
         await prisma.user.update({ 
             where: { id: userId }, 
             data: { 
-                passwordHash: hash,
-                mustChangePassword: false // <--- Atualiza flag para false
+                passwordHash: hash
             } 
         });
         return res.json({ message: "Senha alterada!" });
@@ -248,7 +246,6 @@ router.get('/me', async (req, res) => {
                 avatarUrl: user.avatarUrl,
                 isSuperAdmin: user.isSuperAdmin,
                 plan: store?.plan || 'FREE',
-                mustChangePassword: user.mustChangePassword,
                 storeCreatedAt: store?.createdAt
             },
             store: store ? { id: store.id, name: store.name } : null

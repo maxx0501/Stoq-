@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, X, DollarSign, TrendingUp, Calendar, ArrowRight, CheckCircle, CalendarClock, User, AlertCircle, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, X, DollarSign, TrendingUp, Calendar, ArrowRight, CheckCircle, CalendarClock, User, CreditCard, Banknote, QrCode } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
