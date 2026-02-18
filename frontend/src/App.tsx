@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-const API_URL = import.meta.env.VITE_API_URL || '${API_URL}';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 // Ícones
 import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2 } from 'lucide-react';
 
@@ -187,7 +187,7 @@ export default function App() {
 
     try {
         const token = localStorage.getItem('stoq_token');
-        const res = await fetch('${API_URL}/stores', { 
+        const res = await fetch(`${API_URL}/stores`, { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name: newStoreName })
