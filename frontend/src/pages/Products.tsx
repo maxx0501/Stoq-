@@ -9,6 +9,8 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Modais de Feedback
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -77,18 +79,37 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   // Confirma Exclusão
   const confirmDelete = async () => {
     if (!productToDelete) return;
-    const token = localStorage.getItem('stoq_token');
-    await fetch(`${API_URL}/products/${productToDelete}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    fetchProducts();
-    setShowConfirmDelete(false);
-    setProductToDelete(null);
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('stoq_token');
+      const res = await fetch(`${API_URL}/products/${productToDelete}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Erro ao deletar produto' }));
+        throw new Error(data.error || 'Erro ao deletar produto');
+      }
+      
+      setSuccessMessage('Produto deletado com sucesso!');
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 2000);
+      await fetchProducts();
+      setShowConfirmDelete(false);
+      setProductToDelete(null);
+    } catch (error: any) {
+      alert(error.message || 'Erro ao deletar produto.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return; // Previne cliques múltiplos
+    
+    setIsLoading(true);
     const token = localStorage.getItem('stoq_token');
     const url = isEditing ? `${API_URL}/products/${currentId}` : `${API_URL}/products`;
     const method = isEditing ? 'PUT' : 'POST';
@@ -100,18 +121,33 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         body: JSON.stringify(form)
       });
 
+      // Parse response com fallback
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = { ok: res.ok };
+      }
+
       if (res.ok) {
         setIsModalOpen(false);
-        fetchProducts();
+        await fetchProducts();
+        setForm({ name: '', description: '', category: '', price: '', costPrice: '', stock: '', minStock: '', imageUrl: '', isVisible: true });
+        setIsEditing(false);
+        setCurrentId(null);
         
         // Feedback Visual
         setSuccessMessage(isEditing ? "Produto atualizado!" : "Produto criado com sucesso!");
         setShowSuccessModal(true);
         setTimeout(() => setShowSuccessModal(false), 2000);
       } else {
-        alert("Erro ao salvar.");
+        alert(data.error || "Erro ao salvar.");
       }
-    } catch (error) { alert("Erro de conexão."); }
+    } catch (error: any) {
+      alert(error.message || "Erro de conexão.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Paginação Lógica
@@ -249,7 +285,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                   </div>
                   <div><label className="text-xs font-bold text-slate-500">DESCRIÇÃO</label><textarea className="input-padrao h-24 resize-none" value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
                   <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl"><input type="checkbox" checked={form.isVisible} onChange={e => setForm({...form, isVisible: e.target.checked})} className="w-5 h-5 accent-blue-600" /><label className="text-sm font-medium text-slate-700">Visível no catálogo</label></div>
-                  <button className="w-full bg-[#0f172a] text-white py-4 rounded-xl font-bold hover:bg-blue-900 transition shadow-lg mt-4">{isEditing ? 'Salvar' : 'Cadastrar'}</button>
+                  <button type="submit" disabled={isLoading || !form.name.trim()} className="w-full bg-[#0f172a] text-white py-4 rounded-xl font-bold hover:bg-blue-900 transition shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? 'Salvando...' : isEditing ? 'Salvar' : 'Cadastrar'}</button>
                 </div>
               </form>
             </div>
