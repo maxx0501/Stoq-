@@ -14,9 +14,8 @@ export async function apiCall(
 ): Promise<Response> {
   const token = localStorage.getItem('stoq_token');
   
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options.headers,
   };
 
   if (token) {
