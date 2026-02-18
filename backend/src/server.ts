@@ -23,7 +23,8 @@ import userRoutes from './routes/users.routes';
 import adminRoutes from './routes/admin.routes';
 
 const app = express();
-const PORT = 3333;
+const PORT = process.env.PORT || 3333;
+const server = app.listen(PORT, () => console.log(`🚀 Server rodando na porta ${PORT}`));
 const prisma = new PrismaClient();
 
 // ===== MIDDLEWARE DE SEGURANÇA =====
