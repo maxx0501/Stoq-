@@ -17,9 +17,11 @@ model User {
   avatarUrl     String?
   isSuperAdmin  Boolean   @default(false)
   
+  
   // --- SEGURANÇA ---
   isVerified        Boolean   @default(false) 
   verificationToken String?   
+  mustChangePassword Boolean @default(false)
 
   createdAt     DateTime  @default(now())
   
@@ -31,12 +33,13 @@ model User {
 model Store {
   id        String    @id @default(uuid())
   name      String
+  // Removi telefone e endereço pois você disse que não vai usar agora.
+  // Se precisar no futuro, é só adicionar.
+  
   plan      StorePlan @default(FREE)
   createdAt DateTime  @default(now())
   
-  // --- CAMPO NOVO PARA ASSINATURA ---
   subscriptionExpiresAt DateTime? 
-  // ----------------------------------
 
   // Relações
   memberships   StoreUser[]
@@ -45,8 +48,10 @@ model Store {
   stockEntries  StockEntry[]
   customers     Customer[]
   cashFlows     CashFlow[]
-  expenses      Expense[]     
+  expenses      Expense[]      
 }
+
+
 
 model StoreUser {
   id                String  @id @default(uuid())

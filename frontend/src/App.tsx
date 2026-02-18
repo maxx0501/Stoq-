@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 // Ícones
-import { Store, Building2, ArrowRight, AlertCircle } from 'lucide-react';
+import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2 } from 'lucide-react';
 
 // Páginas
 import { Sales } from './pages/Sales';
@@ -17,16 +17,12 @@ import { Subscription } from './pages/Subscription';
 import { SuperAdmin } from './pages/SuperAdmin';
 import { CashFlow } from './pages/CashFlow';
 import { Expenses } from './pages/Expenses';
-// Importe a página Legal que criamos
 import { Legal } from './pages/Legal';
 
 export default function App() {
-  // Adicionei os tipos 'terms', 'privacy' e 'lgpd' aqui no estado
   const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses' | 'terms' | 'privacy' | 'lgpd'>('home'); 
 
-  // NOVO ESTADO: Guarda de onde o usuário veio (home, login ou signup)
   const [previousView, setPreviousView] = useState<string>('home');
-
   const [user, setUser] = useState<any>(null);
   const [activeStoreName, setActiveStoreName] = useState('');
 
@@ -40,6 +36,11 @@ export default function App() {
 
   // Tema
   const [theme, setTheme] = useState(() => localStorage.getItem('stoq_theme') === 'dark' ? 'dark' : 'light');
+
+  // Estado para Forçar Senha
+  const [forcePasswordLoading, setForcePasswordLoading] = useState(false);
+  const [forceNewPass, setForceNewPass] = useState('');
+  const [forceConfirmPass, setForceConfirmPass] = useState('');
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -55,78 +56,96 @@ export default function App() {
 
   // --- CHECK DE LOGIN E ROTAS AO CARREGAR ---
   useEffect(() => {
-    // 1. VERIFICA SE O USUÁRIO ENTROU DIRETO EM UMA PÁGINA LEGAL (/terms, /privacy)
+    // 0. CAPTURA TOKEN DO GOOGLE
+    const params = new URLSearchParams(window.location.search);
+    const googleToken = params.get('google_token');
+    const userName = params.get('user_name');
+
+    if (googleToken) {
+        window.history.replaceState({}, '', '/');
+        localStorage.setItem('stoq_token', googleToken);
+        if (userName) localStorage.setItem('stoq_user_name', userName);
+
+        fetch('http://localhost:3333/auth/me', {
+            headers: { 'Authorization': `Bearer ${googleToken}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.user) {
+                localStorage.setItem('stoq_user_role', data.user.role);
+                localStorage.setItem('stoq_store_plan', data.user.plan || 'FREE');
+                
+                setUser(data.user);
+
+                if (data.store) {
+                    localStorage.setItem('stoq_store_id', data.store.id);
+                    localStorage.setItem('stoq_store_name', data.store.name);
+                    setActiveStoreName(data.store.name);
+                    setView('dashboard'); 
+                } else {
+                    localStorage.removeItem('stoq_store_id');
+                    setView('setup-store');
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Erro token:", err);
+            localStorage.clear();
+        });
+        return; 
+    }
+
     const path = window.location.pathname;
     if (path === '/terms') { setView('terms'); return; }
     if (path === '/privacy') { setView('privacy'); return; }
     if (path === '/lgpd') { setView('lgpd'); return; }
 
-    // 2. Se não for rota legal, verifica token normal
     const token = localStorage.getItem('stoq_token');
     
     if (token) {
-        const savedUserName = localStorage.getItem('stoq_user_name');
-        const savedUserRole = localStorage.getItem('stoq_user_role');
-        const savedStoreName = localStorage.getItem('stoq_store_name');
-        const savedAvatar = localStorage.getItem('stoq_user_avatar');
-        const savedPlan = localStorage.getItem('stoq_store_plan');
-        const savedStoreCreatedAt = localStorage.getItem('stoq_store_created_at');
-        
-        if (savedUserName) {
-            setUser({ 
-                name: savedUserName, 
-                role: savedUserRole || 'USER',
-                avatarUrl: savedAvatar || '',
-                plan: savedPlan || 'FREE',
-                storeCreatedAt: savedStoreCreatedAt 
-            });
-        }
-
-        if (!savedStoreName || savedStoreName === 'undefined') {
-            setView('setup-store');
-        } else {
-            setActiveStoreName(savedStoreName);
-            // Se estava na home/login, joga pro dashboard.
-            if (view === 'home' || view === 'login' || view === 'signup') {
-                setView('dashboard');
+        // Fetch /me para pegar o status atualizado do mustChangePassword
+        fetch('http://localhost:3333/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.user) {
+                setUser(data.user); // Atualiza usuário com o campo mustChangePassword
+                
+                if (data.store) {
+                    setActiveStoreName(data.store.name);
+                    if (view === 'home' || view === 'login' || view === 'signup') {
+                        setView('dashboard');
+                    }
+                } else {
+                    setView('setup-store');
+                }
             }
-        }
+        })
+        .catch(() => localStorage.clear());
     }
-  }, []); // Array vazio = roda só uma vez ao abrir o site
+  }, []);
 
-  // --- LÓGICA DE BLOQUEIO / TESTE GRÁTIS ---
   const checkSubscriptionStatus = () => {
     if (!user || user.role === 'SELLER') return true; 
     if (user.plan === 'PRO') return true; 
-
     const createdDate = new Date(user.storeCreatedAt || Date.now());
     const trialDays = 30; 
     const expirationDate = new Date(createdDate);
     expirationDate.setDate(createdDate.getDate() + trialDays);
-    
-    const now = new Date();
-    
-    if (now > expirationDate) {
-        return false;
-    }
-    return true; 
+    return new Date() <= expirationDate; 
   };
 
-  // --- FUNÇÕES DE NAVEGAÇÃO LEGAL ---
   const handleOpenLegal = (page: 'terms' | 'privacy' | 'lgpd') => {
-      setPreviousView(view); // Salva onde estou agora
-      setView(page);         // Vai para a página legal
+      setPreviousView(view); 
+      setView(page);
   };
 
   const handleBackFromLegal = () => {
-      setView(previousView as any); // Volta para onde estava
-      // Se estava na home, limpa a URL. Se estava no login, mantém.
-      if (previousView === 'home') {
-          window.history.pushState({}, '', '/');
-      }
+      setView(previousView as any); 
+      if (previousView === 'home') window.history.pushState({}, '', '/');
   };
 
-  // --- FUNÇÕES DE LOGIN/LOGOUT ---
   const handleLogin = async () => {
     try {
       const response = await fetch('http://localhost:3333/auth/login', {
@@ -137,32 +156,19 @@ export default function App() {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao fazer login");
-      }
+      if (!response.ok) throw new Error(data.error || "Erro ao fazer login");
 
       localStorage.setItem('stoq_token', data.token);
       localStorage.setItem('stoq_user_name', data.user.name);
-      localStorage.setItem('stoq_user_role', data.user.role);
-      localStorage.setItem('stoq_store_plan', data.user.plan || 'FREE');
       
-      if (data.user.storeCreatedAt) {
-          localStorage.setItem('stoq_store_created_at', data.user.storeCreatedAt);
-      }
-      
-      setUser({
-          ...data.user,
-          storeCreatedAt: data.user.storeCreatedAt 
-      });
+      setUser(data.user); // O user já vem com mustChangePassword
 
       if (data.storeId) {
           localStorage.setItem('stoq_store_id', data.storeId); 
           const storeName = data.storeName || localStorage.getItem('stoq_store_name') || 'Minha Loja';
           setActiveStoreName(storeName);
-          localStorage.setItem('stoq_store_name', storeName);
           setView('dashboard');
       } else {
-          localStorage.removeItem('stoq_store_id');
           setView('setup-store');
       }
 
@@ -175,66 +181,31 @@ export default function App() {
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStoreName.trim()) return;
-
     setIsStoreLoading(true);
     setStoreError(null);
 
     try {
         const token = localStorage.getItem('stoq_token');
-        if (!token) {
-            setStoreError("Sessão expirada. Faça login novamente.");
-            setIsStoreLoading(false);
-            return;
-        }
-
         const res = await fetch('http://localhost:3333/stores', { 
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ name: newStoreName })
         });
-
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
 
-        if (!res.ok) {
-            throw new Error(data.error || "Erro ao criar loja.");
-        }
-
-        if (data.token) {
-            localStorage.setItem('stoq_token', data.token);
-        }
-
+        if (data.token) localStorage.setItem('stoq_token', data.token);
         const storeData = data.store || data; 
         
         if (storeData) {
             localStorage.setItem('stoq_store_id', storeData.id);
             localStorage.setItem('stoq_store_name', storeData.name);
-            localStorage.setItem('stoq_store_plan', 'FREE');
-            
-            const now = new Date().toISOString();
-            localStorage.setItem('stoq_store_created_at', storeData.createdAt || now);
-            
             setActiveStoreName(storeData.name);
-            
-            setUser((prev: any) => ({ 
-                ...prev, 
-                role: 'OWNER', 
-                plan: 'FREE',
-                storeCreatedAt: storeData.createdAt || now
-            }));
+            setUser((prev: any) => ({ ...prev, role: 'OWNER', plan: 'FREE' }));
         }
-
-        localStorage.setItem('stoq_user_role', 'OWNER');
         setView('dashboard');
-
-    } catch (err: any) {
-        console.error(err);
-        setStoreError(err.message || "Erro de conexão.");
-    } finally {
-        setIsStoreLoading(false);
-    }
+    } catch (err: any) { setStoreError(err.message); } 
+    finally { setIsStoreLoading(false); }
   };
 
   const handleLogout = () => {
@@ -242,28 +213,98 @@ export default function App() {
     setUser(null);
     setActiveStoreName('');
     setView('home');
-    // Limpa a URL caso esteja em uma rota específica
     window.history.pushState({}, '', '/');
   };
 
-  const commonProps = { 
-    user, 
-    storeName: activeStoreName, 
-    onLogout: handleLogout, 
-    onNavigate: setView,
-    setUser,
-    toggleTheme,
-    currentTheme: theme
+  const handleForcePasswordChange = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (forceNewPass.length < 6) return alert("A senha deve ter no mínimo 6 caracteres.");
+      if (forceNewPass !== forceConfirmPass) return alert("As senhas não coincidem.");
+
+      setForcePasswordLoading(true);
+      try {
+          const token = localStorage.getItem('stoq_token');
+          const res = await fetch('http://localhost:3333/auth/change-password', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({ newPassword: forceNewPass })
+          });
+
+          if (res.ok) {
+              alert("Senha atualizada com sucesso! Bem-vindo.");
+              // Atualiza o estado local para liberar o acesso
+              setUser((prev: any) => ({ ...prev, mustChangePassword: false }));
+          } else {
+              alert("Erro ao atualizar senha.");
+          }
+      } catch (error) {
+          alert("Erro de conexão.");
+      } finally {
+          setForcePasswordLoading(false);
+      }
   };
 
-  // --- RENDERIZAÇÃO CENTRALIZADA ---
+  // --- RENDERIZAÇÃO ---
   const renderContent = () => {
-      // 1. ROTAS LEGAIS (PÚBLICAS)
+      // 0. BLOQUEIO DE TROCA DE SENHA OBRIGATÓRIA
+      if (user && user.mustChangePassword) {
+          return (
+              <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-6 font-sans">
+                  <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 md:p-10 text-center animate-in zoom-in-95 duration-300">
+                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                          <Shield size={32} />
+                      </div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-2">Segurança em Primeiro Lugar</h2>
+                      <p className="text-slate-500 mb-8 text-sm leading-relaxed">
+                          Como este é seu primeiro acesso, você precisa definir uma nova senha pessoal e segura.
+                      </p>
+                      
+                      <form onSubmit={handleForcePasswordChange} className="space-y-4 text-left">
+                          <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Nova Senha</label>
+                              <div className="relative">
+                                  <Lock className="absolute left-3 top-3.5 text-slate-400" size={18}/>
+                                  <input 
+                                      type="password" 
+                                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
+                                      placeholder="Mínimo 6 caracteres"
+                                      value={forceNewPass}
+                                      onChange={e => setForceNewPass(e.target.value)}
+                                  />
+                              </div>
+                          </div>
+                          <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Confirmar Senha</label>
+                              <div className="relative">
+                                  <CheckCircle className="absolute left-3 top-3.5 text-slate-400" size={18}/>
+                                  <input 
+                                      type="password" 
+                                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
+                                      placeholder="Repita a senha"
+                                      value={forceConfirmPass}
+                                      onChange={e => setForceConfirmPass(e.target.value)}
+                                  />
+                              </div>
+                          </div>
+                          <button 
+                              disabled={forcePasswordLoading} 
+                              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+                          >
+                              {forcePasswordLoading ? <Loader2 className="animate-spin"/> : "Definir Senha e Entrar"}
+                          </button>
+                      </form>
+                      <button onClick={handleLogout} className="mt-6 text-xs font-bold text-slate-400 hover:text-red-500 transition">
+                          Sair da conta
+                      </button>
+                  </div>
+              </div>
+          );
+      }
+
       if (view === 'terms') return <Legal type="terms" onBack={handleBackFromLegal} />;
       if (view === 'privacy') return <Legal type="privacy" onBack={handleBackFromLegal} />;
       if (view === 'lgpd') return <Legal type="lgpd" onBack={handleBackFromLegal} />;
 
-      // 2. SETUP (Privado, mas sem loja)
       if (view === 'setup-store') {
           return (
             <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
@@ -272,43 +313,18 @@ export default function App() {
                     <Building2 size={32} />
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 mb-2">Bem-vindo, {user?.name}!</h2>
-                <p className="text-slate-500 mb-8 text-sm leading-relaxed">
-                    Para começar, precisamos criar a identidade do seu negócio no sistema.
-                </p>
-                {storeError && (
-                    <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold flex items-center gap-3 mb-6 text-left border border-red-100 animate-in shake">
-                        <AlertCircle size={18} className="shrink-0"/>
-                        {storeError}
-                    </div>
-                )}
+                <p className="text-slate-500 mb-8 text-sm leading-relaxed">Para começar, precisamos criar a identidade do seu negócio no sistema.</p>
+                {storeError && <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold flex items-center gap-3 mb-6 text-left border border-red-100 animate-in shake"><AlertCircle size={18} className="shrink-0"/>{storeError}</div>}
                 <form onSubmit={handleCreateStore} className="text-left space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Nome da Empresa / Loja</label>
                         <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition">
-                                <Store size={18} />
-                            </div>
-                            <input 
-                                type="text" 
-                                className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 focus:bg-white transition font-bold text-slate-800 placeholder:text-slate-300 text-lg" 
-                                placeholder="Ex: Alpha Comércio" 
-                                value={newStoreName}
-                                onChange={(e) => setNewStoreName(e.target.value)}
-                                autoFocus
-                            />
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition"><Store size={18} /></div>
+                            <input type="text" className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 focus:bg-white transition font-bold text-slate-800 placeholder:text-slate-300 text-lg" placeholder="Ex: Alpha Comércio" value={newStoreName} onChange={(e) => setNewStoreName(e.target.value)} autoFocus />
                         </div>
                     </div>
-                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3 items-start">
-                        <div className="mt-0.5 text-blue-600"><AlertCircle size={16}/></div>
-                        <p className="text-xs text-blue-800 leading-relaxed font-medium">
-                            Esse nome aparecerá nos recibos e no painel principal. Você poderá alterá-lo nas configurações depois.
-                        </p>
-                    </div>
-                    <button 
-                        disabled={isStoreLoading || !newStoreName.trim()} 
-                        className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
-                    >
-                        {isStoreLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <>Finalizar Configuração <ArrowRight size={20}/></>}
+                    <button disabled={isStoreLoading || !newStoreName.trim()} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4">
+                        {isStoreLoading ? <Loader2 className="animate-spin"/> : <>Finalizar Configuração <ArrowRight size={20}/></>}
                     </button>
                 </form>
               </div>
@@ -316,29 +332,15 @@ export default function App() {
         );
       }
 
-      // 3. AUTH (Pública)
       if (view === 'login' || view === 'signup') {
-          return (
-            <Auth 
-              mode={view} 
-              setView={setView} 
-              formData={authData} 
-              setFormData={setAuthData}
-              onLoginSubmit={handleLogin}
-              onOpenLegal={handleOpenLegal} // <--- PASSAMOS AQUI A FUNÇÃO DE ABRIR TERMOS
-            />
-          );
+          return <Auth mode={view} setView={setView} formData={authData} setFormData={setAuthData} onLoginSubmit={handleLogin} onOpenLegal={handleOpenLegal} setUser={setUser} />;
       }
 
-      // 4. TELAS DO SISTEMA (Privadas + Checagem de Assinatura)
       const isAllowed = checkSubscriptionStatus();
-      
-      // Bloqueio de Assinatura
-      if (!isAllowed && view !== 'subscription' && view !== 'settings') {
-           return <Subscription {...commonProps} isLocked={true} />;
-      }
+      if (!isAllowed && view !== 'subscription' && view !== 'settings') return <Subscription {...{ user, storeName: activeStoreName, onLogout: handleLogout, onNavigate: setView, setUser, toggleTheme, currentTheme: theme }} isLocked={true} />;
 
-      // Rotas do Painel
+      const commonProps = { user, storeName: activeStoreName, onLogout: handleLogout, onNavigate: setView, setUser, toggleTheme, currentTheme: theme };
+
       if (view === 'dashboard') return <Dashboard {...commonProps} />;
       if (view === 'products') return <Products {...commonProps} />;
       if (view === 'stock') return <Stock {...commonProps} />;
@@ -352,19 +354,7 @@ export default function App() {
       if (view === 'cashflow') return <CashFlow {...commonProps} />;
       if (view === 'expenses') return <Expenses {...commonProps} />;
       
-      // 5. HOME (Padrão)
-      return <Home 
-          onLogin={() => setView('login')} 
-          onSignup={() => setView('signup')} 
-          onNavigate={(page: any) => {
-              // Se for página legal, usa a função inteligente que salva o histórico
-              if (['terms', 'privacy', 'lgpd'].includes(page)) {
-                  handleOpenLegal(page);
-              } else {
-                  setView(page);
-              }
-          }} 
-      />;
+      return <Home onLogin={() => setView('login')} onSignup={() => setView('signup')} onNavigate={(page: any) => { if (['terms', 'privacy', 'lgpd'].includes(page)) { handleOpenLegal(page); } else { setView(page); } }} />;
   };
 
   return renderContent();

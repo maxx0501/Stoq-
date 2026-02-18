@@ -4,13 +4,6 @@ import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 
-// --- CONSTANTES LEGAIS ---
-const FIADO_CONFIG = {
-    DAYS_TO_DUE: 30,
-    INTEREST_RATE: 1.0,
-    FINE_RATE: 2.0
-};
-
 export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   // --- ESTADOS ---
   const [metrics, setMetrics] = useState<any>(null);
@@ -27,7 +20,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const [customerSearch, setCustomerSearch] = useState('');
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
 
-  // Estados de Pagamento (Apenas Visual/Categoria)
+  // Estados de Pagamento
   const [paymentMethod, setPaymentMethod] = useState('MONEY');
 
   // Feedback
@@ -65,7 +58,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
     setCart([]);
     setSelectedCustomer(null);
     setSearchTerm('');
-    setPaymentMethod('MONEY'); // Resetar para dinheiro
+    setPaymentMethod('MONEY'); 
     setIsPosOpen(true);
   };
 
@@ -95,11 +88,10 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const removeFromCart = (id: string) => setCart(cart.filter(item => item.id !== id));
   const cartTotal = cart.reduce((acc, item) => acc + (Number(item.price) * item.quantity), 0);
 
-  // --- FINALIZAR VENDA DIRETA ---
+  // --- FINALIZAR VENDA ---
   const handleFinishSale = async () => {
     if (cart.length === 0) return alert("Carrinho vazio!");
     
-    // Validação Fiado
     if (saleMode === 'FIADO' && !selectedCustomer) {
         return alert("⚠️ Selecione um cliente para vender fiado.");
     }
@@ -112,7 +104,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
       const payload = {
           items: cart.map(i => ({ productId: i.id, quantity: i.quantity })),
           customerId: selectedCustomer?.id, 
-          // Se for Fiado, força CREDIT_STORE. Se não, usa o que o usuário selecionou nos botões.
+          // Se for Fiado, força CREDIT_STORE. 
           paymentMethod: saleMode === 'FIADO' ? 'CREDIT_STORE' : paymentMethod
       };
 
@@ -142,12 +134,33 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
     }
   };
 
+  // --- HELPERS VISUAIS (NOVOS) ---
+  
+  // 1. Tradutor de nomes para texto corrido (Modal)
+  const getPaymentLabel = (method: string) => {
+      switch (method) {
+          case 'MONEY': return 'Dinheiro';
+          case 'CREDIT_CARD': return 'Cartão de Crédito';
+          case 'DEBIT_CARD': return 'Cartão de Débito';
+          case 'PIX': return 'Pix';
+          case 'CREDIT_STORE': return 'Fiado';
+          default: return method;
+      }
+  };
+
+  // 2. Badges coloridas para o Histórico
   const getPaymentBadge = (method: string) => {
       switch(method) {
-          case 'CREDIT_STORE': return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-[10px] font-black border border-purple-200 uppercase flex items-center gap-1 w-fit"><CalendarClock size={10}/> FIADO</span>;
-          case 'PIX': return <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded text-[10px] font-bold border border-teal-200 uppercase flex items-center gap-1 w-fit"><QrCode size={10}/> PIX</span>;
-          case 'CREDIT_CARD': return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold border border-blue-200 uppercase flex items-center gap-1 w-fit"><CreditCard size={10}/> CARTÃO</span>;
-          default: return <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold border border-emerald-200 uppercase flex items-center gap-1 w-fit"><Banknote size={10}/> DINHEIRO</span>;
+          case 'CREDIT_STORE': 
+            return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-[10px] font-black border border-purple-200 uppercase flex items-center gap-1 w-fit"><CalendarClock size={10}/> FIADO</span>;
+          case 'PIX': 
+            return <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded text-[10px] font-bold border border-teal-200 uppercase flex items-center gap-1 w-fit"><QrCode size={10}/> PIX</span>;
+          case 'CREDIT_CARD': 
+            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-[10px] font-bold border border-blue-200 uppercase flex items-center gap-1 w-fit"><CreditCard size={10}/> CRÉDITO</span>;
+          case 'DEBIT_CARD': // Nova opção visual
+            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-[10px] font-bold border border-orange-200 uppercase flex items-center gap-1 w-fit"><CreditCard size={10}/> DÉBITO</span>;
+          default: 
+            return <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-[10px] font-bold border border-emerald-200 uppercase flex items-center gap-1 w-fit"><Banknote size={10}/> DINHEIRO</span>;
       }
   };
 
@@ -237,7 +250,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
             </div>
         </div>
 
-        {/* --- MODAL DE PDV (Tudo em uma tela só) --- */}
+        {/* --- MODAL DE PDV --- */}
         {isPosOpen && (
             <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
                 <div className="bg-white w-full max-w-[95%] h-[90vh] rounded-3xl shadow-2xl flex overflow-hidden relative">
@@ -325,23 +338,32 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                             )}
                         </div>
 
-                        {/* --- FOOTER UNIFICADO (Total + Pagamento + Botão) --- */}
+                        {/* --- FOOTER (PAGAMENTO SEPARADO) --- */}
                         <div className="p-6 bg-slate-50 border-t border-slate-200">
                             
-                            {/* Seletor de Pagamento (Só aparece se NÃO for fiado) */}
+                            {/* Seletor de Pagamento Atualizado */}
                             {saleMode === 'STANDARD' && (
                                 <div className="mb-4">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Forma de Pagamento</p>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        
                                         <button onClick={() => setPaymentMethod('MONEY')} className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 transition ${paymentMethod === 'MONEY' ? 'border-emerald-500 bg-emerald-100 text-emerald-700' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-100'}`}>
                                             <Banknote size={16}/> DINHEIRO
                                         </button>
-                                        <button onClick={() => setPaymentMethod('CREDIT_CARD')} className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 transition ${paymentMethod === 'CREDIT_CARD' ? 'border-blue-500 bg-blue-100 text-blue-700' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-100'}`}>
-                                            <CreditCard size={16}/> CARTÃO
-                                        </button>
+                                        
                                         <button onClick={() => setPaymentMethod('PIX')} className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 transition ${paymentMethod === 'PIX' ? 'border-teal-500 bg-teal-100 text-teal-700' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-100'}`}>
                                             <QrCode size={16}/> PIX
                                         </button>
+
+                                        <button onClick={() => setPaymentMethod('CREDIT_CARD')} className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 transition ${paymentMethod === 'CREDIT_CARD' ? 'border-blue-500 bg-blue-100 text-blue-700' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-100'}`}>
+                                            <CreditCard size={16}/> CRÉDITO
+                                        </button>
+
+                                        {/* NOVA OPÇÃO: DÉBITO */}
+                                        <button onClick={() => setPaymentMethod('DEBIT_CARD')} className={`p-2 rounded-xl border text-[10px] font-bold flex flex-col items-center gap-1 transition ${paymentMethod === 'DEBIT_CARD' ? 'border-orange-500 bg-orange-100 text-orange-700' : 'border-slate-200 text-slate-400 bg-white hover:bg-slate-100'}`}>
+                                            <CreditCard size={16}/> DÉBITO
+                                        </button>
+
                                     </div>
                                 </div>
                             )}
@@ -358,13 +380,16 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                         </div>
                     </div>
 
-                    {/* MODAL SUCESSO */}
+                    {/* MODAL SUCESSO (ATUALIZADA COM NOME AMIGÁVEL) */}
                     {showSuccessModal && (
                         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in zoom-in duration-300">
                             <div className="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center">
                                 <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={48} className="animate-bounce" /></div>
                                 <h3 className="text-2xl font-black text-slate-800 mb-1">Venda Concluída!</h3>
-                                <p className="text-slate-500 font-bold text-sm">Registrado como {saleMode === 'FIADO' ? 'Fiado' : paymentMethod}.</p>
+                                {/* Aqui usamos a função tradutora */}
+                                <p className="text-slate-500 font-bold text-sm">
+                                    Registrado como {saleMode === 'FIADO' ? 'Fiado' : getPaymentLabel(paymentMethod)}.
+                                </p>
                             </div>
                         </div>
                     )}

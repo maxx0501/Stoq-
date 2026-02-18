@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Plus, Trash2, TrendingDown, CheckCircle, Circle, Calendar, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, TrendingDown, CheckCircle, Circle, Calendar, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Controle do Mês Atual
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   // Form States
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState('');
   const [cat, setCat] = useState('FIXA');
   
-  // NOVO: Estado para repetição
+  // Repetição
   const [isRecurring, setIsRecurring] = useState(false);
-  const [repeatCount, setRepeatCount] = useState(12); // Padrão 1 ano
+  const [repeatCount, setRepeatCount] = useState(12);
 
   useEffect(() => {
     fetchExpenses();
@@ -33,6 +36,42 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
     } catch (e) { console.error("Erro ao carregar despesas"); }
   };
 
+  // --- NAVEGAÇÃO DE MÊS ---
+  const handlePrevMonth = () => {
+      setCurrentDate(prev => {
+          const newDate = new Date(prev);
+          newDate.setMonth(newDate.getMonth() - 1);
+          return newDate;
+      });
+  };
+
+  const handleNextMonth = () => {
+      setCurrentDate(prev => {
+          const newDate = new Date(prev);
+          newDate.setMonth(newDate.getMonth() + 1);
+          return newDate;
+      });
+  };
+
+  // --- FILTRAGEM CORRIGIDA ---
+  const filteredExpenses = expenses.filter(expense => {
+      if (!expense.dueDate) return false;
+      
+      // 1. Pega apenas a parte 'YYYY-MM-DD' da string ISO que vem do banco
+      const dateString = expense.dueDate.toString().split('T')[0]; 
+      
+      // 2. Cria a data forçando meio-dia para evitar problemas de fuso horário (UTC vs Local)
+      const expenseDate = new Date(dateString + 'T12:00:00');
+      
+      return (
+          expenseDate.getMonth() === currentDate.getMonth() &&
+          expenseDate.getFullYear() === currentDate.getFullYear()
+      );
+  });
+
+  const totalPending = filteredExpenses.filter(e => !e.paid).reduce((acc, curr) => acc + Number(curr.value), 0);
+  const totalPaid = filteredExpenses.filter(e => e.paid).reduce((acc, curr) => acc + Number(curr.value), 0);
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -47,12 +86,11 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                 value: parseFloat(amount.replace(',', '.')), 
                 dueDate: date, 
                 category: cat,
-                repeatCount: isRecurring ? repeatCount : 1 // Manda quantas vezes repetir
+                repeatCount: isRecurring ? repeatCount : 1 
             })
         });
         
         setShowModal(false);
-        // Limpa form
         setDesc(''); setAmount(''); setDate(''); setIsRecurring(false); setRepeatCount(12);
         fetchExpenses();
     } catch (e) { alert("Erro ao salvar"); }
@@ -61,20 +99,19 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
   const togglePaid = async (id: string) => {
     const token = localStorage.getItem('stoq_token');
-    // Atualização otimista (muda na tela antes de ir pro servidor pra ser rápido)
     setExpenses(prev => prev.map(e => e.id === id ? { ...e, paid: !e.paid } : e));
 
     await fetch(`http://localhost:3333/expenses/${id}/toggle`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
     });
-    fetchExpenses(); // Recarrega pra garantir
+    fetchExpenses(); 
   };
 
   const handleDelete = async (id: string) => {
     if(!confirm("Apagar despesa?")) return;
     const token = localStorage.getItem('stoq_token');
-    setExpenses(prev => prev.filter(e => e.id !== id)); // Remove da tela na hora
+    setExpenses(prev => prev.filter(e => e.id !== id)); 
 
     await fetch(`http://localhost:3333/expenses/${id}`, {
         method: 'DELETE',
@@ -83,11 +120,16 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
   };
 
   const formatMoney = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('pt-BR');
+  
+  // Formatador seguro para exibição
+  const formatDate = (dateStr: string) => {
+      if (!dateStr) return '-';
+      const cleanDate = dateStr.toString().split('T')[0];
+      const dateObj = new Date(cleanDate + 'T12:00:00');
+      return dateObj.toLocaleDateString('pt-BR');
+  };
 
-  // Cálculos
-  const totalPending = expenses.filter(e => !e.paid).reduce((acc, curr) => acc + Number(curr.value), 0);
-  const totalPaid = expenses.filter(e => e.paid).reduce((acc, curr) => acc + Number(curr.value), 0);
+  const currentMonthLabel = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   return (
     <div className="flex h-screen bg-[#F8F9FC] font-sans">
@@ -107,12 +149,32 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                     </button>
                 </div>
 
+                {/* --- NAVEGADOR DE MESES --- */}
+                <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6">
+                    <button onClick={handlePrevMonth} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition">
+                        <ChevronLeft size={24} />
+                    </button>
+                    
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-50 text-blue-600 p-2 rounded-lg">
+                            <Calendar size={20} />
+                        </div>
+                        <span className="text-lg font-black text-slate-800 capitalize">
+                            {currentMonthLabel}
+                        </span>
+                    </div>
+
+                    <button onClick={handleNextMonth} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition">
+                        <ChevronRight size={24} />
+                    </button>
+                </div>
+
                 {/* RESUMO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">A Pagar (Pendente)</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase">A Pagar em {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}</p>
                             <h2 className="text-3xl font-black text-slate-800">{formatMoney(totalPending)}</h2>
                         </div>
                         <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
@@ -122,7 +184,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"></div>
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">Já Pago (Total)</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase">Pago em {currentDate.toLocaleDateString('pt-BR', { month: 'long' })}</p>
                             <h2 className="text-3xl font-black text-emerald-600">{formatMoney(totalPaid)}</h2>
                         </div>
                         <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center">
@@ -145,7 +207,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {expenses.map((expense: any) => (
+                            {filteredExpenses.map((expense: any) => (
                                 <tr key={expense.id} className="hover:bg-slate-50 transition group">
                                     <td className="p-4">
                                         <button onClick={() => togglePaid(expense.id)} className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition ${expense.paid ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
@@ -155,7 +217,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                     </td>
                                     <td className="p-4 font-bold text-slate-700">{expense.description}</td>
                                     <td className="p-4 text-sm text-slate-500"><span className="bg-slate-100 px-2 py-1 rounded text-xs font-bold">{expense.category}</span></td>
-                                    <td className={`p-4 text-sm font-bold flex items-center gap-2 ${new Date(expense.dueDate) < new Date() && !expense.paid ? 'text-red-500' : 'text-slate-600'}`}>
+                                    <td className={`p-4 text-sm font-bold flex items-center gap-2 ${new Date(expense.dueDate).getTime() < new Date().getTime() && !expense.paid ? 'text-red-500' : 'text-slate-600'}`}>
                                         <Calendar size={14}/> {formatDate(expense.dueDate)}
                                     </td>
                                     <td className="p-4 font-black text-slate-800">{formatMoney(Number(expense.value))}</td>
@@ -164,14 +226,14 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                     </td>
                                 </tr>
                             ))}
-                            {expenses.length === 0 && (
+                            {filteredExpenses.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="p-12 text-center text-slate-400 text-sm">
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
                                                 <TrendingDown size={24} className="text-slate-300"/>
                                             </div>
-                                            Nenhuma despesa lançada.<br/>Que tal adicionar seus custos fixos?
+                                            Nenhuma despesa encontrada neste mês.<br/>Use o botão "Nova Despesa" para adicionar.
                                         </div>
                                     </td>
                                 </tr>
@@ -182,7 +244,7 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
             </div>
         </div>
 
-        {/* MODAL NOVA DESPESA */}
+        {/* MODAL (Igual ao anterior) */}
         {showModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200">
                 <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
@@ -218,7 +280,6 @@ export const Expenses = ({ onNavigate, onLogout, user, storeName, setUser }: any
                             </select>
                         </div>
 
-                        {/* SEÇÃO DE REPETIÇÃO */}
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <div className="flex items-center gap-3">
                                 <input 

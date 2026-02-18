@@ -11,68 +11,98 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// Adicionei onOpenLegal na desestruturação das props
-export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOpenLegal }: any) => {
+export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOpenLegal, setUser }: any) => {
   
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null); 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false); // Loading do reenvio
+  const [isResending, setIsResending] = useState(false); 
   
-  // NOVO: Estado para aceitar os termos
   const [acceptTerms, setAcceptTerms] = useState(false);
-
-  // Controla se o email de confirmação foi enviado (Cadastro)
   const [isEmailSent, setIsEmailSent] = useState(false);
-
-  // Controla se mostra o botão de reenviar (Login falhou por verificação)
   const [showResendLink, setShowResendLink] = useState(false);
 
-  // REF PARA CORRIGIR O AUTOFILL DA SENHA
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  // Estados de validação de senha
   const [passValidations, setPassValidations] = useState({
-      length: false,
-      upper: false,
-      lower: false,
-      number: false,
-      special: false
+      length: false, upper: false, lower: false, number: false, special: false
   });
 
-  // 1. CORREÇÃO DO AUTOFILL (Ouvinte de preenchimento automático)
+  // --- OUVINTE PARA LOGIN VIA GOOGLE ---
   useEffect(() => {
-    // Verifica a cada 100ms se o navegador preencheu a senha sozinho
+    const params = new URLSearchParams(window.location.search);
+    
+    // Caso 1: Retorno do Login Google
+    const googleToken = params.get('google_token');
+    const userName = params.get('user_name');
+
+    if (googleToken) {
+        // Salva o token
+        localStorage.setItem('stoq_token', googleToken);
+        if (userName) localStorage.setItem('stoq_user_name', userName);
+        
+        // Limpa a URL para ficar bonita
+        window.history.replaceState({}, '', '/login');
+        
+        // Força um reload para o App.tsx pegar a sessão
+        // 3. Busca dados do usuário para decidir para onde ir (SEM RELOAD)
+        fetch('http://localhost:3333/auth/me', {
+            headers: { 'Authorization': `Bearer ${googleToken}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.user) {
+                // Atualiza usuário global
+                if (setUser) setUser(data.user);
+                localStorage.setItem('stoq_user_name', data.user.name);
+                
+                // DECISÃO DE ROTA:
+                if (data.store) {
+                    // Se JÁ TEM loja -> Vai para Dashboard
+                    localStorage.setItem('stoq_store_name', data.store.name);
+                    setView('dashboard'); 
+                } else {
+                    // Se NÃO TEM loja -> Vai para Setup Store
+                    setView('setup-store');
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Erro ao validar Google Token:", err);
+            // Se der erro, aí sim recarrega ou volta pro login
+            window.location.reload();
+        });
+    }
+
+    // Caso 2: Erro do Google
+    if (params.get('error') === 'google_auth_failed') {
+        setError("Falha ao entrar com Google. Tente novamente.");
+        window.history.replaceState({}, '', '/login');
+    }
+
+    // Caso 3: E-mail Verificado
+    if (params.get('verified') === 'true') {
+        setSuccessMsg("✅ E-mail confirmado com sucesso! Faça login para continuar.");
+        window.history.replaceState({}, '', '/login'); 
+    }
+  }, []);
+
+  // Autofill Check
+  useEffect(() => {
     const timer = setInterval(() => {
         if (passwordRef.current && passwordRef.current.value && !formData.password) {
-            // Se tem valor no input mas não tem no estado, atualiza!
             handleChange('password', passwordRef.current.value);
         }
     }, 100);
-
-    // Para de verificar depois de 2 segundos (para não pesar a memória)
     const timeout = setTimeout(() => clearInterval(timer), 2000);
-
-    return () => {
-        clearInterval(timer);
-        clearTimeout(timeout);
-    };
-  }, [formData.password]); // Roda sempre que a senha muda (ou deveria mudar)
-
-  // 2. CAPTURA RETORNO DO E-MAIL (Link mágico)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('verified') === 'true') {
-        setSuccessMsg("✅ E-mail confirmado com sucesso! Faça login para continuar.");
-        window.history.replaceState({}, '', '/login'); // Limpa URL
-    }
-  }, []);
+    return () => { clearInterval(timer); clearTimeout(timeout); };
+  }, [formData.password]); 
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
     setError(null);
-    setShowResendLink(false); // Esconde o botão se o usuário tentar digitar de novo
+    setShowResendLink(false); 
 
     if (field === 'password') {
         setPassValidations({
@@ -95,13 +125,10 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: formData.email })
           });
-          
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
-
           setSuccessMsg("Código reenviado! Verifique sua caixa de entrada.");
           setShowResendLink(false);
-
       } catch (err: any) {
           setError(err.message || "Erro ao reenviar código.");
       } finally {
@@ -115,7 +142,6 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
     setSuccessMsg(null);
     setShowResendLink(false);
 
-    // Força atualização da senha com o valor do input (Garantia final contra autofill)
     if (passwordRef.current && passwordRef.current.value !== formData.password) {
         formData.password = passwordRef.current.value;
     }
@@ -128,23 +154,15 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
 
     if (mode === 'signup') {
         if (!formData.name.trim()) { setError('Informe seu nome.'); return; }
-        
-        // --- VALIDAÇÃO DOS TERMOS ---
-        if (!acceptTerms) {
-            setError("Você precisa aceitar os Termos de Uso para criar uma conta.");
-            return;
-        }
-
+        if (!acceptTerms) { setError("Você precisa aceitar os Termos de Uso."); return; }
         const allValid = Object.values(passValidations).every(Boolean);
-        if (!allValid) { setError('Sua senha não atende aos requisitos de segurança.'); return; }
-
+        if (!allValid) { setError('Sua senha não atende aos requisitos.'); return; }
         if (formData.password !== confirmPassword) { setError('As senhas não coincidem.'); return; }
     }
 
     setIsLoading(true);
 
     if (mode === 'signup') {
-      // --- CADASTRO ---
       try {
           const res = await fetch('http://localhost:3333/auth/signup', {
               method: 'POST',
@@ -155,37 +173,27 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                   password: formData.password
               })
           });
-
           const data = await res.json();
-
-          // SE O EMAIL JÁ EXISTE MAS NÃO FOI VALIDADO
           if (res.status === 409 && data.code === 'EMAIL_NOT_VERIFIED_YET') {
               setError(data.error);
-              setShowResendLink(true); // Mostra o botão para ele tentar de novo
+              setShowResendLink(true); 
               throw new Error(data.error);
           }
-
           if (!res.ok) throw new Error(data.error || 'Erro ao criar conta');
-
           setIsEmailSent(true);
-
       } catch (err: any) {
           setError(err.message);
       } finally {
           setIsLoading(false);
       }
-
     } else {
-      // --- LOGIN ---
       try {
           await onLoginSubmit();
       } catch (err: any) {
-          // AQUI ESTÁ A LÓGICA DO "REENVIAR EMAIL"
           const errorMsg = err.message || '';
-          
           if (errorMsg.includes('EMAIL_NOT_VERIFIED') || errorMsg.includes('Confirme seu e-mail')) {
              setError("Sua conta ainda não foi verificada.");
-             setShowResendLink(true); // ATIVA O BOTÃO
+             setShowResendLink(true); 
           } else {
              setError('E-mail ou senha incorretos.');
           }
@@ -194,38 +202,29 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
     }
   };
 
+  // --- AÇÃO DO BOTÃO GOOGLE ---
   const handleGoogleLogin = () => {
-      alert("Configuração de OAuth 2.0 necessária no Backend.");
+      // Redireciona o navegador para a rota do Backend que iniciamos no passo 2
+      window.location.href = 'http://localhost:3333/auth/google';
   };
 
-  // --- TELA DE CONFIRMAÇÃO DE EMAIL ENVIADO ---
+  // ... (O restante do render - isEmailSent e formulários - permanece igual ao seu código original)
+  // Vou apenas devolver a estrutura renderizada para garantir:
+
   if (isEmailSent) {
       return (
         <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
             <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Send size={32} />
-                </div>
+                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"><Send size={32} /></div>
                 <h2 className="text-2xl font-black text-slate-900 mb-4">Verifique seu e-mail</h2>
-                <p className="text-slate-500 mb-8 leading-relaxed">
-                    Enviamos um link de confirmação para <br/>
-                    <span className="font-bold text-slate-800">{formData.email}</span>.
-                </p>
-                <div className="bg-slate-50 p-4 rounded-xl text-xs text-slate-400 mb-8">
-                    Não recebeu? Verifique sua caixa de spam.
-                </div>
-                <button 
-                    onClick={() => { setIsEmailSent(false); setView('login'); }} 
-                    className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition"
-                >
-                    Voltar para o Login
-                </button>
+                <p className="text-slate-500 mb-8 leading-relaxed">Enviamos um link de confirmação para <br/><span className="font-bold text-slate-800">{formData.email}</span>.</p>
+                <div className="bg-slate-50 p-4 rounded-xl text-xs text-slate-400 mb-8">Não recebeu? Verifique sua caixa de spam.</div>
+                <button onClick={() => { setIsEmailSent(false); setView('login'); }} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition">Voltar para o Login</button>
             </div>
         </div>
       );
   }
 
-  // --- TELA NORMAL DE AUTH ---
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 md:p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
@@ -243,25 +242,15 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
         
         {successMsg && (
             <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl text-sm font-bold flex items-center gap-3 mb-6 text-left border border-emerald-100 animate-in fade-in slide-in-from-top-2">
-                <CheckCircle2 size={20} className="shrink-0"/>
-                {successMsg}
+                <CheckCircle2 size={20} className="shrink-0"/> {successMsg}
             </div>
         )}
 
         {error && (
             <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium flex flex-col items-start gap-2 mb-6 text-left border border-red-100 animate-in shake">
-                <div className="flex items-center gap-3">
-                    <AlertCircle size={20} className="shrink-0"/>
-                    {error}
-                </div>
-                
-                {/* BOTÃO DE REENVIAR CÓDIGO (APARECE SE O ERRO FOR DE VERIFICAÇÃO) */}
+                <div className="flex items-center gap-3"><AlertCircle size={20} className="shrink-0"/> {error}</div>
                 {showResendLink && (
-                    <button 
-                        onClick={handleResendCode}
-                        disabled={isResending}
-                        className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg font-bold hover:bg-red-200 transition ml-8 mt-1 flex items-center gap-2"
-                    >
+                    <button onClick={handleResendCode} disabled={isResending} className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-lg font-bold hover:bg-red-200 transition ml-8 mt-1 flex items-center gap-2">
                         {isResending ? 'Enviando...' : 'Reenviar e-mail de confirmação'}
                     </button>
                 )}
@@ -274,10 +263,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Seu Nome</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><User size={18}/></div>
-                <input 
-                  type="text" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="Seu nome completo"
-                  value={formData.name} onChange={(e) => handleChange('name', e.target.value)}
-                />
+                <input type="text" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="Seu nome completo" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} />
               </div>
             </div>
           )}
@@ -286,10 +272,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">E-mail Corporativo</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Mail size={18}/></div>
-              <input 
-                type="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="seu@email.com"
-                value={formData.email} onChange={(e) => handleChange('email', e.target.value)}
-              />
+              <input type="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="seu@email.com" value={formData.email} onChange={(e) => handleChange('email', e.target.value)} />
             </div>
           </div>
 
@@ -297,35 +280,16 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Senha</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Lock size={18}/></div>
-              {/* INPUT DE SENHA COM REF PARA AUTOFILL */}
-              <input 
-                ref={passwordRef}
-                type="password" 
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" 
-                placeholder="Senha"
-                value={formData.password} 
-                onChange={(e) => handleChange('password', e.target.value)}
-                autoComplete="current-password"
-              />
+              <input ref={passwordRef} type="password" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="Senha" value={formData.password} onChange={(e) => handleChange('password', e.target.value)} autoComplete="current-password" />
             </div>
             
             {mode === 'signup' && (
                 <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <div className={`flex items-center gap-1.5 ${passValidations.length ? 'text-emerald-600' : ''}`}>
-                        {passValidations.length ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Mínimo 8 caracteres
-                    </div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.upper ? 'text-emerald-600' : ''}`}>
-                        {passValidations.upper ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Letra Maiúscula
-                    </div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.lower ? 'text-emerald-600' : ''}`}>
-                        {passValidations.lower ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Letra Minúscula
-                    </div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.number ? 'text-emerald-600' : ''}`}>
-                        {passValidations.number ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Número
-                    </div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.special ? 'text-emerald-600' : ''}`}>
-                        {passValidations.special ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Caractere Especial
-                    </div>
+                    <div className={`flex items-center gap-1.5 ${passValidations.length ? 'text-emerald-600' : ''}`}>{passValidations.length ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Mínimo 8 caracteres</div>
+                    <div className={`flex items-center gap-1.5 ${passValidations.upper ? 'text-emerald-600' : ''}`}>{passValidations.upper ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Letra Maiúscula</div>
+                    <div className={`flex items-center gap-1.5 ${passValidations.lower ? 'text-emerald-600' : ''}`}>{passValidations.lower ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Letra Minúscula</div>
+                    <div className={`flex items-center gap-1.5 ${passValidations.number ? 'text-emerald-600' : ''}`}>{passValidations.number ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Número</div>
+                    <div className={`flex items-center gap-1.5 ${passValidations.special ? 'text-emerald-600' : ''}`}>{passValidations.special ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Caractere Especial</div>
                 </div>
             )}
           </div>
@@ -337,48 +301,18 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     {formData.password && formData.password === confirmPassword && confirmPassword.length >= 8 ? <CheckCircle2 size={18} className="text-emerald-500"/> : <Lock size={18}/>}
                 </div>
-                <input 
-                  type="password" className={`w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 rounded-xl outline-none transition font-medium text-slate-700 ${formData.password && confirmPassword && formData.password !== confirmPassword ? 'border-red-200 focus:border-red-500' : 'border-slate-100 focus:border-blue-600'}`} 
-                  placeholder="Repita a senha"
-                  value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
+                <input type="password" className={`w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 rounded-xl outline-none transition font-medium text-slate-700 ${formData.password && confirmPassword && formData.password !== confirmPassword ? 'border-red-200 focus:border-red-500' : 'border-slate-100 focus:border-blue-600'}`} placeholder="Repita a senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
               </div>
             </div>
           )}
           
-          {/* --- CHECKBOX DE TERMOS (ATUALIZADO) --- */}
           {mode === 'signup' && (
             <div className="flex items-start gap-3 mt-4 animate-in slide-in-from-top-2 fade-in">
-                <button 
-                    type="button"
-                    onClick={() => setAcceptTerms(!acceptTerms)}
-                    className={`mt-0.5 min-w-[20px] w-5 h-5 rounded border flex items-center justify-center transition ${
-                        acceptTerms 
-                        ? 'bg-blue-600 border-blue-600 text-white' 
-                        : 'bg-white border-slate-300 text-transparent hover:border-blue-400'
-                    }`}
-                >
+                <button type="button" onClick={() => setAcceptTerms(!acceptTerms)} className={`mt-0.5 min-w-[20px] w-5 h-5 rounded border flex items-center justify-center transition ${acceptTerms ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-300 text-transparent hover:border-blue-400'}`}>
                     <CheckSquare size={14} />
                 </button>
                 <p className="text-xs text-slate-500 leading-relaxed text-left">
-                    Li e concordo com os{' '}
-                    <button 
-                        type="button" 
-                        onClick={() => onOpenLegal('terms')} // <--- Mudou aqui
-                        className="text-blue-600 font-bold hover:underline"
-                    >
-                        Termos de Uso
-                    </button>{' '}
-                    e{' '}
-                    <button 
-                        type="button" 
-                        onClick={() => onOpenLegal('privacy')} // <--- Mudou aqui
-                        className="text-blue-600 font-bold hover:underline"
-                    >
-                        Política de Privacidade
-                    </button>{' '}
-                    do Stoq+.
+                    Li e concordo com os <button type="button" onClick={() => onOpenLegal('terms')} className="text-blue-600 font-bold hover:underline">Termos de Uso</button> e <button type="button" onClick={() => onOpenLegal('privacy')} className="text-blue-600 font-bold hover:underline">Política de Privacidade</button> do Stoq+.
                 </p>
             </div>
           )}
@@ -393,16 +327,14 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
             <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Ou continue com</span></div>
         </div>
 
+        {/* BOTÃO GOOGLE ATUALIZADO */}
         <button onClick={handleGoogleLogin} className="w-full bg-white border-2 border-slate-100 text-slate-600 py-3.5 rounded-xl font-bold hover:bg-slate-50 hover:border-slate-200 transition flex items-center justify-center gap-3">
             <GoogleIcon /> Google
         </button>
 
         <p className="text-center mt-8 text-slate-500 font-medium text-sm">
             {mode === 'login' ? "Novo no Stoq+?" : "Já é cliente?"} {' '}
-            <button 
-              onClick={() => { setView(mode === 'login' ? 'signup' : 'login'); setError(null); setSuccessMsg(null); setShowResendLink(false); }}
-              className="text-blue-600 font-bold hover:text-blue-700 transition"
-            >
+            <button onClick={() => { setView(mode === 'login' ? 'signup' : 'login'); setError(null); setSuccessMsg(null); setShowResendLink(false); }} className="text-blue-600 font-bold hover:text-blue-700 transition">
               {mode === 'login' ? 'Crie sua conta' : 'Fazer login'}
             </button>
           </p>

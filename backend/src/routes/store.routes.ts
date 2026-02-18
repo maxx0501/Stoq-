@@ -1,23 +1,26 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authMiddleware } from '../middlewares/auth';
-import jwt from 'jsonwebtoken'; // <--- ADICIONE ISSO
+import jwt from 'jsonwebtoken';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'default_secret'; // <--- ADICIONE ISSO
+const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
 
 // Protege todas as rotas de loja
 router.use(authMiddleware);
 
-// --- CRIAR LOJA ---
+// --- 1. CRIAR LOJA (POST /stores) ---
 router.post('/', async (req, res) => {
-    const user = (req as any).user; 
+    // Garante que pega o userId independente de como o middleware anexa (req.user ou req.userId)
+    const reqUser = (req as any).user || (req as any); 
+    const userId = reqUser.userId || reqUser.id; 
+    
     const { name } = req.body;
 
     if (!name) return res.status(400).json({ error: "Nome da loja é obrigatório." });
 
     try {
-        const existingLink = await prisma.storeUser.findFirst({ where: { userId: user.userId } });
+        const existingLink = await prisma.storeUser.findFirst({ where: { userId: userId } });
         if (existingLink) {
             return res.status(400).json({ error: "Você já possui uma loja cadastrada." });
         }
@@ -33,9 +36,9 @@ router.post('/', async (req, res) => {
 
             await tx.storeUser.create({
                 data: {
-                    userId: user.userId,
+                    userId: userId,
                     storeId: newStore.id,
-                    role: 'OWNER', // No banco está certo!
+                    role: 'OWNER',
                     canSell: true,
                     canManageProducts: true
                 }
@@ -44,28 +47,66 @@ router.post('/', async (req, res) => {
             return newStore;
         });
 
-        // 2. O PULO DO GATO: GERAR NOVO TOKEN ATUALIZADO
-        // Agora o usuário é OWNER, precisamos dar um crachá novo pra ele.
+        // 2. GERAR NOVO TOKEN ATUALIZADO
+        // Essencial: O usuário agora tem role 'OWNER' e um 'storeId'
         const newToken = jwt.sign(
             { 
-                userId: user.userId, 
-                role: 'OWNER',      // <--- Atualizado
-                storeId: result.id  // <--- Agora temos o ID da loja
+                userId: userId, 
+                role: 'OWNER',      
+                storeId: result.id  
             }, 
             JWT_SECRET, 
             { expiresIn: '7d' }
         );
 
-        // 3. Retorna a loja E o novo token
         return res.status(201).json({ 
             store: result,
-            token: newToken, // O Front precisa pegar isso e salvar
+            token: newToken, 
             message: "Loja criada com sucesso!"
         });
 
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: "Erro ao criar loja." });
+    }
+});
+
+// --- 2. ATUALIZAR LOJA (PUT /stores/me) ---
+router.put('/me', async (req, res) => {
+    // Garante a mesma lógica de extração do ID
+    const reqUser = (req as any).user || (req as any); 
+    const userId = reqUser.userId || reqUser.id; 
+
+    const { name } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: "Nome da loja é obrigatório." });
+    }
+
+    try {
+        // Verifica se o usuário é dono da loja
+        const storeUser = await prisma.storeUser.findFirst({
+            where: { 
+                userId: userId,
+                role: 'OWNER' 
+            }
+        });
+
+        if (!storeUser) {
+            return res.status(403).json({ error: "Permissão negada. Apenas o dono pode alterar o nome da loja." });
+        }
+
+        // Atualiza a loja vinculada
+        const updatedStore = await prisma.store.update({
+            where: { id: storeUser.storeId },
+            data: { name }
+        });
+
+        return res.json(updatedStore);
+
+    } catch (error) {
+        console.error("Erro ao atualizar loja:", error);
+        return res.status(500).json({ error: "Erro ao atualizar dados da loja." });
     }
 });
 

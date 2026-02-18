@@ -14,19 +14,28 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
   const fetchAdminData = async () => {
     const token = localStorage.getItem('stoq_token');
     try {
-        const res = await fetch('http://localhost:3333/admin/dashboard', { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) setData(await res.json());
-    } catch (e) { console.error(e); }
+        console.log('Fetching admin dashboard...', { token: token?.substring(0, 20) + '...' });
+        const res = await fetch('http://localhost:3333/admin/dashboard', { 
+            headers: { 'Authorization': `Bearer ${token}` } 
+        });
+        console.log('Response status:', res.status);
+        const data = await res.json();
+        console.log('Admin data:', data);
+        if (res.ok) setData(data);
+        else console.error('Error from server:', data.error);
+    } catch (e) { 
+        console.error('Fetch error:', e); 
+    }
   };
 
   const handleDeleteStore = async (id: string, name: string) => {
-    const confirmName = prompt(`PERIGO: Você está prestes a apagar a loja "${name}" e TODOS os dados dela.\n\nPara confirmar, digite o nome da loja:`);
+    const confirmName = prompt(`⚠️ PERIGO: Você está prestes a apagar a loja "${name}"\n\nISTO VAI DELETAR:\n✗ Todos os dados da loja (produtos, vendas, etc)\n✗ Todos os ${data?.stores.find(s => s.id === id)?.stats.users || 0} usuários associados\n\nUnderstanding the consequencespara confirmar, digite o nome da loja:`);
     if (confirmName !== name) return alert("Nome incorreto. Ação cancelada.");
 
     const token = localStorage.getItem('stoq_token');
     try {
         await fetch(`http://localhost:3333/admin/store/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-        alert("Loja deletada.");
+        alert("Loja e usuários deletados com sucesso.");
         fetchAdminData();
     } catch (e) { alert("Erro ao deletar."); }
   };
@@ -112,53 +121,71 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
                     </div>
 
                     <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            <tr>
-                                <th className="px-6 py-4">Loja</th>
-                                <th className="px-6 py-4">Dono</th>
-                                <th className="px-6 py-4">Plano</th>
-                                <th className="px-6 py-4 text-center">Stats (Prod/Vend/Eqp)</th>
-                                <th className="px-6 py-4">Criada em</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 text-sm">
+                    {filteredStores.length === 0 ? (
+                        <div className="p-12 text-center text-slate-400">
+                            <Store size={48} className="mx-auto mb-4 opacity-20"/>
+                            <p className="text-lg">Nenhuma loja encontrada</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                             {filteredStores.map((store: any) => (
-                                <tr key={store.id} className="hover:bg-slate-50 transition group">
-                                    <td className="px-6 py-4 font-bold text-slate-800">{store.name}</td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-slate-700 font-bold text-xs">{store.ownerName}</p>
-                                        <p className="text-slate-400 text-[10px]">{store.ownerEmail}</p>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        {store.plan === 'PRO' ? (
-                                            <span className="bg-slate-900 text-white text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 w-fit"><Crown size={10} className="fill-yellow-400 text-yellow-400"/> PRO</span>
-                                        ) : (
-                                            <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-1 rounded">FREE</span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className="font-mono text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                                            {store.stats.products} / {store.stats.sales} / {store.stats.users}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-xs text-slate-500">
-                                        {new Date(store.createdAt).toLocaleDateString('pt-BR')}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button 
+                                <div key={store.id} className="bg-white border border-slate-100 rounded-xl p-5 hover:shadow-md transition group">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-slate-800 text-base line-clamp-1">{store.name}</h4>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                Criada em {new Date(store.createdAt).toLocaleDateString('pt-BR')}
+                                            </p>
+                                        </div>
+                                        <button
                                             onClick={() => handleDeleteStore(store.id, store.name)}
-                                            className="text-slate-300 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition" 
-                                            title="Deletar Loja Permanentemente"
+                                            className="text-slate-300 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition flex-shrink-0"
+                                            title="Deletar loja e todos os usuários associados"
                                         >
                                             <Trash2 size={16} />
                                         </button>
-                                    </td>
-                                </tr>
+                                    </div>
+
+                                    {/* Informações do Proprietário */}
+                                    <div className="mb-4 pb-4 border-b border-slate-100">
+                                        <p className="text-[11px] font-bold text-slate-400 uppercase mb-2">Proprietário</p>
+                                        <p className="font-bold text-slate-800 text-sm">{store.ownerName}</p>
+                                        <p className="text-xs text-slate-500 truncate">{store.ownerEmail}</p>
+                                    </div>
+
+                                    {/* Plano e Stats */}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="bg-slate-50 p-3 rounded-lg text-center">
+                                            <p className="text-[10px] text-slate-500 font-bold">PLANO</p>
+                                            {store.plan === 'PRO' ? (
+                                                <p className="font-bold text-xs text-yellow-600 flex items-center justify-center gap-1 mt-1">
+                                                    <Crown size={12} className="fill-yellow-600"/> PRO
+                                                </p>
+                                            ) : (
+                                                <p className="font-bold text-xs text-slate-600 mt-1">FREE</p>
+                                            )}
+                                        </div>
+                                        <div className="bg-blue-50 p-3 rounded-lg text-center">
+                                            <p className="text-[10px] text-blue-600 font-bold">PRODUTOS</p>
+                                            <p className="font-black text-base text-blue-700 mt-1">{store.stats.products}</p>
+                                        </div>
+                                        <div className="bg-emerald-50 p-3 rounded-lg text-center">
+                                            <p className="text-[10px] text-emerald-600 font-bold">VENDAS</p>
+                                            <p className="font-black text-base text-emerald-700 mt-1">{store.stats.sales}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Usuários */}
+                                    <div className="bg-purple-50 p-3 rounded-lg mt-2">
+                                        <p className="text-[10px] text-purple-600 font-bold flex items-center gap-2">
+                                            <Users size={12}/> USUÁRIOS
+                                        </p>
+                                        <p className="font-black text-base text-purple-700 mt-1">{store.stats.users}</p>
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    )}
                     </div>
                 </div>
 

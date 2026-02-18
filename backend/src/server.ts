@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import path from 'path'; // <--- 1. IMPORTANTE: Adicionado para gerenciar caminhos
 
 // Importação das Rotas
 import authRoutes from './routes/auth.routes';
@@ -16,14 +17,21 @@ import statsRoutes from './routes/stats.routes';
 import reportsRoutes from './routes/reports.routes';
 import expensesRoutes from './routes/expenses.routes';
 import storeRoutes from './routes/store.routes';
+import userRoutes from './routes/users.routes';
+import adminRoutes from './routes/admin.routes';
 
 const app = express();
 const PORT = 3333;
 const prisma = new PrismaClient(); // Para o setup inicial
 
+// Aumentei o limite para evitar erro ao enviar fotos grandes em Base64 (se for o caso)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
+
+// --- 2. CONFIGURAÇÃO DE ARQUIVOS ESTÁTICOS (FOTOS) ---
+// Isso permite que o navegador acesse http://localhost:3333/uploads/nome-da-foto.jpg
+app.use('/uploads', express.static(path.resolve(__dirname, '..', 'uploads')));
 
 // --- MAPA DE ROTAS ---
 
@@ -39,6 +47,8 @@ app.use('/cashflow', cashflowRoutes);
 app.use('/reports', reportsRoutes);
 app.use('/expenses', expensesRoutes);
 app.use('/stores', storeRoutes);
+app.use('/users', userRoutes);
+app.use('/admin', adminRoutes);
 
 // Rotas de Dashboard (Compatibilidade)
 app.use('/dashboard-metrics', dashboardRoutes); 
@@ -48,13 +58,11 @@ app.use('/my-sales-metrics', statsRoutes);
 app.get('/', (req, res) => res.send('🚀 Stoq+ API Modular Rodando e Corrigida!'));
 
 // --- SETUP INICIAL ---
-// --- SETUP INICIAL (CORRIGIDO) ---
 const setupSuperAdmin = async () => {
     const email = 'mateused0501@gmail.com';
     try {
         const existing = await prisma.user.findUnique({ where: { email } });
         if (!existing) {
-            // A senha será esta aqui:
             const hash = await bcrypt.hash('@Mateus05060708', 10); 
             
             const user = await prisma.user.create({ 
@@ -63,7 +71,7 @@ const setupSuperAdmin = async () => {
                     email, 
                     passwordHash: hash, 
                     isSuperAdmin: true,
-                    isVerified: true // <--- ADICIONE ISSO AQUI!
+                    isVerified: true 
                 } 
             });
 
