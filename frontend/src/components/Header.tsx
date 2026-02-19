@@ -30,7 +30,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
             email: user.email || '', 
             avatarUrl: user.avatarUrl || localStorage.getItem('stoq_user_avatar') || '' 
         });
-        fetchNotifications(false); // Busca ao carregar (mas com proteção de cache)
+        fetchNotifications(false); 
     }
   }, [user === null ? null : user.id]);
 
@@ -49,12 +49,10 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
       const token = localStorage.getItem('stoq_token');
       if (!token) return;
 
-      // Proteção de Cache: Evita fazer requisições atoa a cada troca de página
       if (!forceUpdate) {
           const cachedNotifs = sessionStorage.getItem('stoq_notifs_cache');
           const cacheTime = sessionStorage.getItem('stoq_notifs_time');
           
-          // Se o cache existir e for mais novo que 5 minutos, usa ele!
           if (cachedNotifs && cacheTime && (Date.now() - Number(cacheTime) < 5 * 60 * 1000)) {
               setNotifications(JSON.parse(cachedNotifs));
               return;
@@ -109,7 +107,6 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
 
           setNotifications(newNotifs);
           
-          // Salva no cache
           sessionStorage.setItem('stoq_notifs_cache', JSON.stringify(newNotifs));
           sessionStorage.setItem('stoq_notifs_time', Date.now().toString());
 
@@ -177,16 +174,24 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
     }
   };
 
-  // --- TRATAMENTO DA IMAGEM DE PERFIL ---
+  // --- TRATAMENTO CORRIGIDO DA IMAGEM DE PERFIL ---
   const getAvatarImage = () => {
-    const url = user?.avatarUrl || localStorage.getItem('stoq_user_avatar');
+    let url = user?.avatarUrl || localStorage.getItem('stoq_user_avatar');
     if (!url) return null;
-    // Se a imagem for um caminho relativo do servidor, concatena com a API
-    if (url.startsWith('/')) return `${API_URL}${url}`;
-    return url;
-  };
-  const finalAvatar = getAvatarImage();
 
+    // Se a foto vier do Google (já é um link completo), retorna ela mesma
+    if (url.startsWith('http')) return url;
+
+    // Se for foto do nosso servidor, garante que tenha a barra no começo
+    if (!url.startsWith('/')) {
+        url = `/${url}`;
+    }
+    
+    // Concatena o link do Render com a foto
+    return `${API_URL}${url}`;
+  };
+  
+  const finalAvatar = getAvatarImage();
   const notifCount = notifications.length;
 
   return (
@@ -211,7 +216,6 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
          
          {/* Notificações */}
          <div className="relative" ref={notifRef}>
-            {/* Adicionado o forceUpdate (true) quando o usuário clica manualmente no sino */}
             <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(true); }} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
                 <Bell size={20} />
                 {notifCount > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
@@ -251,9 +255,20 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
          {/* Perfil */}
          <div className="relative" ref={profileRef}>
             <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-3 hover:bg-slate-50 p-1.5 rounded-full transition group pr-3">
-                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-white font-black text-sm uppercase overflow-hidden relative border-2 border-white shadow-sm">
-                    {/* Alterado para usar o finalAvatar corrigido */}
-                    {finalAvatar ? <img src={finalAvatar} className="w-full h-full object-cover" alt="Avatar" /> : <span className="bg-blue-600 w-full h-full flex items-center justify-center">{user?.name?.[0] || 'U'}</span>}
+                {/* ESTRUTURA BLINDADA DA FOTO DE PERFIL */}
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-black text-sm uppercase overflow-hidden relative border-2 border-white shadow-sm">
+                    {/* A letra fica sempre no fundo */}
+                    <span className="absolute inset-0 flex items-center justify-center">{user?.name?.[0] || 'U'}</span>
+                    
+                    {/* Se a foto existir, ela fica por cima. Se der erro (onError), ela some e a letra aparece! */}
+                    {finalAvatar && (
+                        <img 
+                            src={finalAvatar} 
+                            className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                            alt="Avatar" 
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                    )}
                 </div>
                 <div className="text-left hidden md:block">
                     <p className="text-sm font-bold text-slate-700 leading-tight">{user?.name}</p>
@@ -292,8 +307,17 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
                 <div className="px-8 pb-8 relative">
                     <div className="absolute -top-12 left-1/2 -translate-x-1/2">
                         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                            <div className="w-24 h-24 rounded-full border-4 border-white bg-slate-200 shadow-lg overflow-hidden">
-                                {formData.avatarUrl ? <img src={formData.avatarUrl} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-blue-600 flex items-center justify-center text-white text-3xl font-black">{formData.name?.[0] || 'U'}</div>}
+                            
+                            {/* ESTRUTURA BLINDADA DO MODAL */}
+                            <div className="w-24 h-24 rounded-full border-4 border-white bg-blue-600 shadow-lg overflow-hidden relative">
+                                <span className="absolute inset-0 flex items-center justify-center text-white text-3xl font-black">{formData.name?.[0] || 'U'}</span>
+                                {formData.avatarUrl && (
+                                    <img 
+                                        src={formData.avatarUrl.startsWith('data:') ? formData.avatarUrl : finalAvatar || undefined} 
+                                        className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                )}
                             </div>
                             <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full border-2 border-white shadow-sm"><Camera size={14} /></div>
                         </div>
