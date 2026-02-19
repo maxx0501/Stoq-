@@ -115,18 +115,44 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
+      // Valida dados antes de enviar
+      if (!form.name.trim()) {
+        alert('Nome do produto é obrigatório');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!form.price || Number(form.price) < 0) {
+        alert('Preço deve ser um valor positivo');
+        setIsLoading(false);
+        return;
+      }
+
+      // Prepara dados com conversão de tipos corretos
+      const data = {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        category: form.category.trim() || 'Geral',
+        price: Number(form.price),
+        costPrice: form.costPrice ? Number(form.costPrice) : 0,
+        stock: Number(form.stock) || 0,
+        minStock: form.minStock ? Number(form.minStock) : 0,
+        imageUrl: form.imageUrl || '',
+        isVisible: form.isVisible
+      };
+
       const res = await fetch(url, {
         method: method,
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(form)
+        body: JSON.stringify(data)
       });
 
       // Parse response com fallback
-      let data;
+      let response;
       try {
-        data = await res.json();
+        response = await res.json();
       } catch {
-        data = { ok: res.ok };
+        response = { ok: res.ok };
       }
 
       if (res.ok) {
@@ -141,10 +167,12 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         setShowSuccessModal(true);
         setTimeout(() => setShowSuccessModal(false), 2000);
       } else {
-        alert(data.error || "Erro ao salvar.");
+        console.error('Erro ao salvar:', response);
+        alert(response.error || "Erro ao salvar produto. Tente novamente.");
       }
     } catch (error: any) {
-      alert(error.message || "Erro de conexão.");
+      console.error('Erro de conexão:', error);
+      alert(error.message || "Erro de conexão ao salvar produto.");
     } finally {
       setIsLoading(false);
     }

@@ -70,7 +70,10 @@ export default function App() {
         fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${googleToken}` }
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error(`Auth error: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             if (data.user) {
                 localStorage.setItem('stoq_user_role', data.user.role);
@@ -108,10 +111,25 @@ export default function App() {
         fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error(`Auth error: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             if (data.user) {
-                setUser(data.user); // Atualiza usuário com o campo mustChangePassword
+                // Restaura avatar do localStorage se existir, senão usa do servidor
+                const savedAvatar = localStorage.getItem('stoq_user_avatar');
+                const userWithAvatar = {
+                    ...data.user,
+                    avatarUrl: data.user.avatarUrl || savedAvatar || ''
+                };
+                
+                // Salva avatar no localStorage para persistir entre navegações
+                if (data.user.avatarUrl) {
+                    localStorage.setItem('stoq_user_avatar', data.user.avatarUrl);
+                }
+                
+                setUser(userWithAvatar);
                 
                 if (data.store) {
                     setActiveStoreName(data.store.name);
@@ -155,13 +173,14 @@ export default function App() {
         body: JSON.stringify({ email: authData.email, password: authData.password })
       });
 
-      // Tenta fazer parse de JSON, com fallback para texto
+      // Lê a resposta UMA VEZ como texto
+      const responseText = await response.text();
       let data;
+      
       try {
-        data = await response.json();
+        data = JSON.parse(responseText);
       } catch {
-        const text = await response.text();
-        throw new Error(text || 'Erro ao fazer login');
+        throw new Error(responseText || 'Erro ao fazer login');
       }
 
       if (!response.ok) throw new Error(data.error || "Erro ao fazer login");

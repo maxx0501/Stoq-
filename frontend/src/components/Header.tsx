@@ -28,11 +28,11 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
         setFormData({ 
             name: user.name || '', 
             email: user.email || '', 
-            avatarUrl: user.avatarUrl || '' 
+            avatarUrl: user.avatarUrl || localStorage.getItem('stoq_user_avatar') || '' 
         });
         fetchNotifications(); // Busca ao carregar
     }
-  }, [user]);
+  }, [user === null ? null : user.id]); // Só recarrega se user.id muda, não se user inteiro muda
 
   // Click Outside
   useEffect(() => {
