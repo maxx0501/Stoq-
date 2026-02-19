@@ -30,9 +30,9 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
             email: user.email || '', 
             avatarUrl: user.avatarUrl || localStorage.getItem('stoq_user_avatar') || '' 
         });
-        fetchNotifications(); // Busca ao carregar
+        fetchNotifications(false); // Busca ao carregar (mas com proteção de cache)
     }
-  }, [user === null ? null : user.id]); // Só recarrega se user.id muda, não se user inteiro muda
+  }, [user === null ? null : user.id]);
 
   // Click Outside
   useEffect(() => {
@@ -44,10 +44,22 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- BUSCA NOTIFICAÇÕES REAIS ---
-  const fetchNotifications = async () => {
+  // --- BUSCA NOTIFICAÇÕES (COM CACHE INTELIGENTE) ---
+  const fetchNotifications = async (forceUpdate = false) => {
       const token = localStorage.getItem('stoq_token');
       if (!token) return;
+
+      // Proteção de Cache: Evita fazer requisições atoa a cada troca de página
+      if (!forceUpdate) {
+          const cachedNotifs = sessionStorage.getItem('stoq_notifs_cache');
+          const cacheTime = sessionStorage.getItem('stoq_notifs_time');
+          
+          // Se o cache existir e for mais novo que 5 minutos, usa ele!
+          if (cachedNotifs && cacheTime && (Date.now() - Number(cacheTime) < 5 * 60 * 1000)) {
+              setNotifications(JSON.parse(cachedNotifs));
+              return;
+          }
+      }
 
       setIsLoadingNotifs(true);
       const newNotifs = [];
@@ -60,9 +72,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
               const lowStock = products.filter((p: any) => p.stock <= 5);
               if (lowStock.length > 0) {
                   newNotifs.push({
-                      id: 'stock',
-                      type: 'warning',
-                      title: 'Estoque Baixo',
+                      id: 'stock', type: 'warning', title: 'Estoque Baixo',
                       message: `${lowStock.length} produtos estão acabando.`,
                       icon: <Package size={16} className="text-orange-500"/>
                   });
@@ -76,9 +86,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
               const lateExpenses = expenses.filter((e: any) => !e.paid && new Date(e.dueDate) < new Date());
               if (lateExpenses.length > 0) {
                   newNotifs.push({
-                      id: 'expense',
-                      type: 'danger',
-                      title: 'Contas Atrasadas',
+                      id: 'expense', type: 'danger', title: 'Contas Atrasadas',
                       message: `Você tem ${lateExpenses.length} contas vencidas.`,
                       icon: <DollarSign size={16} className="text-red-500"/>
                   });
@@ -92,9 +100,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
               const lateDebts = debts.filter((d: any) => new Date(d.dueDate) < new Date());
               if (lateDebts.length > 0) {
                   newNotifs.push({
-                      id: 'debt',
-                      type: 'warning',
-                      title: 'Fiados Vencidos',
+                      id: 'debt', type: 'warning', title: 'Fiados Vencidos',
                       message: `${lateDebts.length} clientes estão atrasados.`,
                       icon: <CalendarClock size={16} className="text-purple-500"/>
                   });
@@ -102,6 +108,10 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
           }
 
           setNotifications(newNotifs);
+          
+          // Salva no cache
+          sessionStorage.setItem('stoq_notifs_cache', JSON.stringify(newNotifs));
+          sessionStorage.setItem('stoq_notifs_time', Date.now().toString());
 
       } catch (error) {
           console.error("Erro ao buscar notificações", error);
@@ -167,6 +177,16 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
     }
   };
 
+  // --- TRATAMENTO DA IMAGEM DE PERFIL ---
+  const getAvatarImage = () => {
+    const url = user?.avatarUrl || localStorage.getItem('stoq_user_avatar');
+    if (!url) return null;
+    // Se a imagem for um caminho relativo do servidor, concatena com a API
+    if (url.startsWith('/')) return `${API_URL}${url}`;
+    return url;
+  };
+  const finalAvatar = getAvatarImage();
+
   const notifCount = notifications.length;
 
   return (
@@ -191,7 +211,8 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
          
          {/* Notificações */}
          <div className="relative" ref={notifRef}>
-            <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(); }} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
+            {/* Adicionado o forceUpdate (true) quando o usuário clica manualmente no sino */}
+            <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(true); }} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
                 <Bell size={20} />
                 {notifCount > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
             </button>
@@ -231,7 +252,8 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
          <div className="relative" ref={profileRef}>
             <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-3 hover:bg-slate-50 p-1.5 rounded-full transition group pr-3">
                 <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-white font-black text-sm uppercase overflow-hidden relative border-2 border-white shadow-sm">
-                    {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" alt="Avatar" /> : <span className="bg-blue-600 w-full h-full flex items-center justify-center">{user?.name?.[0] || 'U'}</span>}
+                    {/* Alterado para usar o finalAvatar corrigido */}
+                    {finalAvatar ? <img src={finalAvatar} className="w-full h-full object-cover" alt="Avatar" /> : <span className="bg-blue-600 w-full h-full flex items-center justify-center">{user?.name?.[0] || 'U'}</span>}
                 </div>
                 <div className="text-left hidden md:block">
                     <p className="text-sm font-bold text-slate-700 leading-tight">{user?.name}</p>
