@@ -174,21 +174,15 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
     }
   };
 
-  // --- TRATAMENTO CORRIGIDO DA IMAGEM DE PERFIL ---
+  // --- TRATAMENTO DA IMAGEM DE PERFIL (SIMPLIFICADO) ---
   const getAvatarImage = () => {
     let url = user?.avatarUrl || localStorage.getItem('stoq_user_avatar');
     if (!url) return null;
-
-    // Se a foto vier do Google (já é um link completo), retorna ela mesma
-    if (url.startsWith('http')) return url;
-
-    // Se for foto do nosso servidor, garante que tenha a barra no começo
-    if (!url.startsWith('/')) {
-        url = `/${url}`;
-    }
     
-    // Concatena o link do Render com a foto
-    return `${API_URL}${url}`;
+    // A URL já vem completa do backend (`https://stoqplus.com.br/uploads/...`)
+    // ou do Google (também é uma URL completa)
+    // Então retorna como está
+    return url.includes('?') ? url : `${url}?v=${Date.now()}`;
   };
   
   const finalAvatar = getAvatarImage();
