@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { Package, Search, ArrowDownCircle, ArrowUpCircle, AlertTriangle, CheckCircle, TrendingUp, ChevronLeft, ChevronRight, History, Calendar, Trash2 } from 'lucide-react';

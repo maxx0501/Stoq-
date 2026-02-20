@@ -3,7 +3,7 @@ import { ShoppingCart, Search, Plus, Minus, Trash2, Package, X, DollarSign, Tren
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 
 export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   // --- ESTADOS ---

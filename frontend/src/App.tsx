@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 // Ícones
 import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2 } from 'lucide-react';
 

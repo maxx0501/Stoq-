@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 import { Mail, Lock, User, ArrowLeft, Check, AlertCircle, CheckCircle2, Send, CheckSquare, Loader2 } from 'lucide-react';
 
 // Ícone do Google

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock } from 'lucide-react';
 
 export const Header = ({ user, storeName, onLogout, setUser }: any) => {
