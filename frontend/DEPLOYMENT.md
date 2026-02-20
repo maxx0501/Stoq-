@@ -9,7 +9,7 @@ VITE_API_URL=http://localhost:3333
 
 ### Produção (`.env.production`)
 ```env
-VITE_API_URL=https://seu-backend-render.onrender.com
+VITE_API_URL=VITE_API_URL=https://api.stoqplus.com.br
 ```
 
 ## Setup Local
@@ -48,7 +48,7 @@ npm preview  # para testar build local
 
 ### 2. Configurar variáveis de ambiente
 ```
-VITE_API_URL = https://seu-backend-render.onrender.com
+VITE_API_URL = VITE_API_URL=https://api.stoqplus.com.br
 ```
 
 ### 3. Deploy automático
@@ -57,14 +57,14 @@ Push para `main` branch → Vercel faz deploy automaticamente
 ## URLs de Produção
 
 - **Frontend**: https://stoq-plus.vercel.app
-- **Backend**: https://stoq-plus-backend.onrender.com
+- **Backend**: VITE_API_URL=https://api.stoqplus.com.br
 - **Admin Console**: https://stoq-plus.vercel.app → Login com admin
 
 ## Troubleshooting
 
 ### "Erro ao conectar ao backend"
 1. Verifica se `VITE_API_URL` está correto em `.env.production`
-2. Verifica se backend está rodando no Render
+2. Verifica se backend está rodando no 
 3. Abre DevTools (F12) → Network → vê o erro exato
 
 ### "CORS error"
@@ -74,7 +74,7 @@ Push para `main` branch → Vercel faz deploy automaticamente
 
 ### Login com Google não funciona
 1. Verifica a URL de callback no Google Cloud Console:
-   - Deve ser: `https://stoq-plus-backend.onrender.com/auth/google/callback`
+   - Deve ser: `https://api.stoqplus.com.br`
 2. backend/.env deve ter:
    - `GOOGLE_CLIENT_ID`
    - `GOOGLE_CLIENT_SECRET`

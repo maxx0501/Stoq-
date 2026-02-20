@@ -28,8 +28,8 @@ Plataforma completa para gerenciamento de lojas online, vendas, estoque, cliente
 - **Runtime**: Node.js + Express
 - **Linguagem**: TypeScript
 - **Banco**: PostgreSQL + Prisma ORM
-- **Deploy**: Render
-- **URL**: https://stoq-plus-backend.onrender.com
+- **Deploy**: 
+- **URL**: VITE_API_URL=https://api.stoqplus.com.br
 
 ### Banco de Dados
 - PostgreSQL
@@ -157,7 +157,7 @@ stoq-plus/
 | Frontend | React 18, TypeScript, Vite, Tailwind |
 | Backend | Node.js, Express, TypeScript |
 | Banco | PostgreSQL, Prisma |
-| DevOps | Vercel (Frontend), Render (Backend) |
+| DevOps | Vercel (Frontend), (Backend) |
 | Segurança | Helmet.js, Rate Limiting, Zod |
 
 ## 📞 Contato

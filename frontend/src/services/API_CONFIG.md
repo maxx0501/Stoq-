@@ -5,7 +5,7 @@
 Add these variables in **Netlify Dashboard → Site Environment Variables**:
 
 ```
-VITE_API_URL = https://stoq-plus-backend.onrender.com
+VITE_API_URL=https://api.stoqplus.com.br
 ```
 
 ## How to Use the API Service
@@ -47,5 +47,5 @@ await apiDelete('/customers/456');
 
 When deploying to Netlify:
 1. Add `VITE_API_URL` environment variable in Netlify settings
-2. Set it to your backend URL (e.g., `https://stoq-plus-backend.onrender.com`)
+2. Set it to your backend URL (e.g., `https://api.stoqplus.com.br`)
 3. Redeploy
