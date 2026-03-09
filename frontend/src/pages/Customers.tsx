@@ -241,12 +241,12 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
                     )}
                 </div>
 
-                {/* --- SEÇÃO 2: TABELA GERAL DE FIADOS --- */}
+                {/* --- SEÇÃO 2: TABELA GERAL DE VENDAS A CRÉDITO --- */}
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                     <div className="p-8 border-b border-slate-100 bg-purple-50/30 flex justify-between items-center">
                         <div>
                             <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                                <CalendarClock className="text-purple-600" /> Controle de Fiados
+                                <CalendarClock className="text-purple-600" /> Controle de Vendas a Crédito
                             </h2>
                             <p className="text-slate-500 text-sm mt-1">Todas as contas pendentes da loja.</p>
                         </div>
@@ -366,7 +366,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
                     {/* Abas */}
                     <div className="flex border-b border-slate-100">
                         <button onClick={() => setHistoryTab('ALL')} className={`flex-1 py-3 text-sm font-bold transition ${historyTab === 'ALL' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-slate-500 hover:bg-slate-50'}`}>Todas as Vendas</button>
-                        <button onClick={() => setHistoryTab('DEBTS')} className={`flex-1 py-3 text-sm font-bold transition ${historyTab === 'DEBTS' ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50/50' : 'text-slate-500 hover:bg-slate-50'}`}>Apenas Fiados (Pendente)</button>
+                        <button onClick={() => setHistoryTab('DEBTS')} className={`flex-1 py-3 text-sm font-bold transition ${historyTab === 'DEBTS' ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50/50' : 'text-slate-500 hover:bg-slate-50'}`}>Apenas Créditos (Pendente)</button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -420,7 +420,7 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
                     </div>
                     
                     <h3 className="text-2xl font-black text-slate-800 mb-1">Receber Valor</h3>
-                    <p className="text-slate-500 text-sm mb-6">Confirma o recebimento desta dívida?</p>
+                    <p className="text-slate-500 text-sm mb-6">Confirma o recebimento deste pagamento em aberto?</p>
 
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Valor Total</p>

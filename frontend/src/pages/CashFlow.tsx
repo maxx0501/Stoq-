@@ -265,7 +265,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center"><span className="text-slate-500 text-sm font-medium">Cartão</span><span className="font-bold text-slate-800">{formatMoney(salesSummary.CREDIT_CARD)}</span></div>
                                             <div className="flex justify-between items-center"><span className="text-slate-500 text-sm font-medium">Pix</span><span className="font-bold text-slate-800">{formatMoney(salesSummary.PIX)}</span></div>
-                                            <div className="flex justify-between items-center"><span className="text-purple-600 text-sm font-bold">Fiado (A receber)</span><span className="font-bold text-purple-700">{formatMoney(salesSummary.CREDIT_STORE)}</span></div>
+                                            <div className="flex justify-between items-center"><span className="text-purple-600 text-sm font-bold">Vendas a Crédito (A receber)</span><span className="font-bold text-purple-700">{formatMoney(salesSummary.CREDIT_STORE)}</span></div>
                                         </div>
                                         <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-end">
                                             <span className="text-slate-500 text-sm">Total Geral (Inclui dinheiro)</span>
@@ -371,7 +371,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         <button onClick={()=>{setShowBleedModal(false); setShowSupplyModal(false)}}><X size={20} className="text-slate-400"/></button>
                     </div>
                     <input type="number" placeholder="Valor R$" autoFocus className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 mb-3 outline-none focus:border-blue-500" value={moveValue} onChange={e=>setMoveValue(e.target.value)} />
-                    <input type="text" placeholder="Motivo (Ex: Conta Luz)" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium text-slate-800 mb-4 outline-none focus:border-blue-500" value={moveDesc} onChange={e=>setMoveDesc(e.target.value)} />
+                                <input type="text" placeholder="Motivo da transferência (Ex: Depósito, Retirada)" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium text-slate-800 mb-4 outline-none focus:border-blue-500" value={moveDesc} onChange={e=>setMoveDesc(e.target.value)} />
                     <button onClick={handleMovement} className={`w-full py-3 font-bold text-white rounded-xl shadow-lg ${modalType==='BLEED'?'bg-red-600':'bg-blue-600'}`}>Confirmar</button>
                 </div>
             </div>
@@ -396,7 +396,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                             <span className={`font-black ${Math.abs(serverDifference) < 0.1 ? 'text-green-600' : 'text-red-600'}`}>
                                 {Math.abs(serverDifference) < 0.1 ? 'Caixa Batendo' : 
                                  serverDifference > 0 ? `Sobra de ${formatMoney(serverDifference)}` : 
-                                 `Falta de ${formatMoney(Math.abs(serverDifference))}`}
+                                 `Diferença faltante: ${formatMoney(Math.abs(serverDifference))}`}  
                             </span>
                         </div>
                     </div>

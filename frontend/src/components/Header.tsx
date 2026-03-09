@@ -32,7 +32,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
         });
         fetchNotifications(false); 
     }
-  }, [user === null ? null : user.id]);
+  }, [user === null ? null : user.id, user?.avatarUrl]);
 
   // Click Outside
   useEffect(() => {
@@ -91,15 +91,15 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
               }
           }
 
-          // 3. Fiados Atrasados
+          // 3. Vendas a Crédito Vencidas
           const resDebts = await fetch(`${API_URL}/sales/debts`, { headers: { 'Authorization': `Bearer ${token}` } });
           if (resDebts.ok) {
               const debts = await resDebts.json();
               const lateDebts = debts.filter((d: any) => new Date(d.dueDate) < new Date());
               if (lateDebts.length > 0) {
                   newNotifs.push({
-                      id: 'debt', type: 'warning', title: 'Fiados Vencidos',
-                      message: `${lateDebts.length} clientes estão atrasados.`,
+                      id: 'debt', type: 'warning', title: 'Vendas a Crédito Vencidas',
+                      message: `${lateDebts.length} clientes possuem pagamentos vencidos.`,
                       icon: <CalendarClock size={16} className="text-purple-500"/>
                   });
               }
@@ -130,6 +130,8 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
       const reader = new FileReader();
       reader.onloadend = () => setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
       reader.readAsDataURL(file);
+      // Limpa o input para permitir reuploads
+      e.target.value = '';
     }
   };
 
@@ -151,38 +153,57 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
         
         if (res.ok) {
             const updatedUser = await res.json();
+            console.log('✅ User Updated:', updatedUser);
+            
+            // Atualiza o state global do usuário
             if (setUser) {
-                const freshUser = {
-                    ...updatedUser,
-                    avatarUrl: updatedUser.avatarUrl ? `${updatedUser.avatarUrl}?t=${Date.now()}` : null
-                };
-                setUser((prev: any) => ({ ...prev, ...freshUser }));
+                setUser((prev: any) => {
+                    const newUser = { ...prev, ...updatedUser };
+                    console.log('📝 New User State:', newUser);
+                    return newUser;
+                });
             }
+            
+            // Salva no localStorage
             localStorage.setItem('stoq_user_name', updatedUser.name);
             if (updatedUser.avatarUrl) localStorage.setItem('stoq_user_avatar', updatedUser.avatarUrl);
 
             setIsEditModalOpen(false); 
-            setIsSuccessModalOpen(true); 
+            setIsSuccessModalOpen(true);
+            setSelectedFile(null);
+            setFormData(prev => ({ ...prev, avatarUrl: updatedUser.avatarUrl || prev.avatarUrl }));
         } else { 
             const errorData = await res.json();
+            console.error('❌ Erro ao atualizar:', errorData);
             alert("Erro ao atualizar: " + (errorData.error || "Tente novamente.")); 
         }
-    } catch (error) { 
+    } catch (error) {
+        console.error('❌ Erro de conexão:', error);
         alert("Erro de conexão com o servidor."); 
     } finally { 
         setIsSaving(false); 
     }
   };
 
-  // --- TRATAMENTO DA IMAGEM DE PERFIL (SIMPLIFICADO) ---
+  // --- TRATAMENTO DA IMAGEM DE PERFIL (VERSÃO ORIGINAL QUE FUNCIONAVA) ---
   const getAvatarImage = () => {
-    let url = user?.avatarUrl || localStorage.getItem('stoq_user_avatar');
+    const url = user?.avatarUrl || localStorage.getItem('stoq_user_avatar');
     if (!url) return null;
     
-    // A URL já vem completa do backend (`https://stoqplus.com.br/uploads/...`)
-    // ou do Google (também é uma URL completa)
-    // Então retorna como está
-    return url.includes('?') ? url : `${url}?v=${Date.now()}`;
+    // Se a imagem for um caminho relativo do servidor, concatena com a API
+    if (url.startsWith('/')) return `${API_URL}${url}?v=${Date.now()}`;
+    
+    // Se for URL completa ou data URL, retorna como está
+    return url;
+  };
+
+  // --- FUNÇÃO AUXILIAR PARA CONVERTER URLs RELATIVAS ---
+  const getImageUrl = (url: string | null | undefined) => {
+    if (!url) return null;
+    if (url.startsWith('data:')) return url; // Data URL (preview)
+    if (url.startsWith('http')) return url; // URL completa (Google)
+    if (url.startsWith('/')) return `${API_URL}${url}`; // URL relativa
+    return url;
   };
   
   const finalAvatar = getAvatarImage();
@@ -226,7 +247,7 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
                         {notifications.length === 0 && !isLoadingNotifs ? (
                             <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
                                 <CheckCircle size={24} className="text-emerald-100"/>
-                                Tudo certo por aqui!
+                                Nenhuma notificação pendente.
                             </div>
                         ) : (
                             notifications.map((notif, idx) => (
@@ -260,7 +281,11 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
                             src={finalAvatar} 
                             className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
                             alt="Avatar" 
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            crossOrigin="anonymous"
+                            onError={(e) => { 
+                                console.error('Erro ao carregar avatar:', finalAvatar, e);
+                                e.currentTarget.style.display = 'none'; 
+                            }}
                         />
                     )}
                 </div>
@@ -303,17 +328,19 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
                         <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                             
                             {/* ESTRUTURA BLINDADA DO MODAL */}
-                            <div className="w-24 h-24 rounded-full border-4 border-white bg-blue-600 shadow-lg overflow-hidden relative">
-                                <span className="absolute inset-0 flex items-center justify-center text-white text-3xl font-black">{formData.name?.[0] || 'U'}</span>
+                            <div className="w-24 h-24 rounded-full border-4 border-white bg-blue-600 shadow-lg overflow-visible relative">
+                                <span className="absolute inset-0 flex items-center justify-center text-white text-3xl font-black z-0">{formData.name?.[0] || 'U'}</span>
                                 {formData.avatarUrl && (
                                     <img 
-                                        src={formData.avatarUrl.startsWith('data:') ? formData.avatarUrl : finalAvatar || undefined} 
-                                        className="absolute inset-0 w-full h-full object-cover z-10 bg-white" 
+                                        src={getImageUrl(formData.avatarUrl)} 
+                                        className="absolute inset-0 w-full h-full object-cover z-10 bg-white rounded-full" 
+                                        crossOrigin="anonymous"
                                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                     />
                                 )}
+                                {/* Ícone de câmera - z-30 para ficar ACIMA de tudo */}
+                                <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full border-2 border-white shadow-sm z-30"><Camera size={14} /></div>
                             </div>
-                            <div className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full border-2 border-white shadow-sm"><Camera size={14} /></div>
                         </div>
                         <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                     </div>

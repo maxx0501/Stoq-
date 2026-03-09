@@ -9,7 +9,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   // --- ESTADOS ---
   const [metrics, setMetrics] = useState<any>(null);
   const [isPosOpen, setIsPosOpen] = useState(false);
-  const [saleMode, setSaleMode] = useState<'STANDARD' | 'FIADO'>('STANDARD'); 
+  const [saleMode, setSaleMode] = useState<'STANDARD' | 'CREDIT'>('STANDARD'); 
   
   const [products, setProducts] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -52,7 +52,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
     if (res.ok) setCustomers(await res.json());
   };
 
-  const handleOpenPos = (mode: 'STANDARD' | 'FIADO') => {
+  const handleOpenPos = (mode: 'STANDARD' | 'CREDIT') => {
     setSaleMode(mode);
     fetchProducts();
     fetchCustomers();
@@ -93,8 +93,8 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const handleFinishSale = async () => {
     if (cart.length === 0) return alert("Carrinho vazio!");
     
-    if (saleMode === 'FIADO' && !selectedCustomer) {
-        return alert("⚠️ Selecione um cliente para vender fiado.");
+    if (saleMode === 'CREDIT' && !selectedCustomer) {
+        return alert("⚠️ Selecione um cliente para vender a crédito.");
     }
 
     setIsSubmitting(true);
@@ -105,8 +105,8 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
       const payload = {
           items: cart.map(i => ({ productId: i.id, quantity: i.quantity })),
           customerId: selectedCustomer?.id, 
-          // Se for Fiado, força CREDIT_STORE. 
-          paymentMethod: saleMode === 'FIADO' ? 'CREDIT_STORE' : paymentMethod
+          // Se for crédito, força CREDIT_STORE. 
+          paymentMethod: saleMode === 'CREDIT' ? 'CREDIT_STORE' : paymentMethod
       };
 
       const res = await fetch(`${API_URL}/sales`, {
@@ -144,7 +144,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
           case 'CREDIT_CARD': return 'Cartão de Crédito';
           case 'DEBIT_CARD': return 'Cartão de Débito';
           case 'PIX': return 'Pix';
-          case 'CREDIT_STORE': return 'Fiado';
+            case 'CREDIT_STORE': return 'Crédito';
           default: return method;
       }
   };
@@ -153,7 +153,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const getPaymentBadge = (method: string) => {
       switch(method) {
           case 'CREDIT_STORE': 
-            return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-[10px] font-black border border-purple-200 uppercase flex items-center gap-1 w-fit"><CalendarClock size={10}/> FIADO</span>;
+            return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-[10px] font-black border border-purple-200 uppercase flex items-center gap-1 w-fit"><CalendarClock size={10}/> CRÉDITO</span>;
           case 'PIX': 
             return <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded text-[10px] font-bold border border-teal-200 uppercase flex items-center gap-1 w-fit"><QrCode size={10}/> PIX</span>;
           case 'CREDIT_CARD': 
@@ -189,8 +189,8 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                         <button onClick={() => handleOpenPos('STANDARD')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-500/30 flex items-center gap-3 transition transform hover:scale-105">
                             <ShoppingCart size={24} /> REALIZAR VENDA
                         </button>
-                        <button onClick={() => handleOpenPos('FIADO')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-purple-500/30 flex items-center gap-3 transition transform hover:scale-105">
-                            <CalendarClock size={24} /> VENDA FIADO
+                        <button onClick={() => handleOpenPos('CREDIT')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-purple-500/30 flex items-center gap-3 transition transform hover:scale-105">
+                            <CalendarClock size={24} /> VENDA C/ CRÉDITO
                         </button>
                     </div>
                 </div>
@@ -259,7 +259,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                     {/* ESQUERDA: CATÁLOGO */}
                     <div className="flex-1 flex flex-col bg-slate-50 border-r border-slate-200">
                         <div className="p-6 border-b border-slate-200 bg-white flex justify-between items-center">
-                            <div><h2 className="text-xl font-black text-slate-800">Catálogo</h2><p className="text-xs text-slate-500">Selecione os itens para {saleMode === 'FIADO' ? 'o crediário' : 'a venda'}.</p></div>
+                            <div><h2 className="text-xl font-black text-slate-800">Catálogo</h2><p className="text-xs text-slate-500">Selecione os itens para {saleMode === 'CREDIT' ? 'venda a crédito' : 'venda'}.</p></div>
                             <div className="bg-slate-100 p-2 rounded-xl flex items-center gap-2 border border-slate-200 w-64"><Search className="text-slate-400" size={18} /><input className="bg-transparent outline-none text-sm w-full" placeholder="Buscar produto..." autoFocus value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start">
@@ -280,11 +280,11 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                     <div className="w-96 flex flex-col bg-white h-full relative border-l-8 border-slate-100">
                         
                         {/* Header Carrinho */}
-                        <div className={`p-6 border-b border-slate-100 flex justify-between items-center ${saleMode === 'FIADO' ? 'bg-purple-50' : 'bg-slate-50'}`}>
+                        <div className={`p-6 border-b border-slate-100 flex justify-between items-center ${saleMode === 'CREDIT' ? 'bg-purple-50' : 'bg-slate-50'}`}>
                             <div>
-                                <h2 className={`font-black flex items-center gap-2 ${saleMode === 'FIADO' ? 'text-purple-800' : 'text-slate-800'}`}>
-                                    {saleMode === 'FIADO' ? <CalendarClock size={20}/> : <ShoppingCart size={20}/>} 
-                                    {saleMode === 'FIADO' ? 'CARRINHO FIADO' : 'CARRINHO'}
+                                <h2 className={`font-black flex items-center gap-2 ${saleMode === 'CREDIT' ? 'text-purple-800' : 'text-slate-800'}`}>
+                                    {saleMode === 'CREDIT' ? <CalendarClock size={20}/> : <ShoppingCart size={20}/>} 
+                                    {saleMode === 'CREDIT' ? 'CARRINHO DE CRÉDITO' : 'CARRINHO'}
                                 </h2>
                             </div>
                             <button onClick={() => setIsPosOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition"><X size={20} className="text-slate-500"/></button>
@@ -293,19 +293,19 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                         {/* Seletor Cliente */}
                         <div className="p-4 border-b border-slate-100">
                             <div className="flex justify-between items-center mb-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Cliente {saleMode === 'FIADO' ? '(OBRIGATÓRIO)' : '(OPCIONAL)'}</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Cliente {saleMode === 'CREDIT' ? '(OBRIGATÓRIO)' : '(OPCIONAL)'}</label>
                                 {selectedCustomer && <span className="text-[10px] bg-green-100 text-green-700 px-2 rounded font-bold">OK</span>}
                             </div>
                             
                             {!selectedCustomer ? (
                                 <div className="relative">
-                                    <button onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)} className={`w-full bg-white border text-slate-500 font-medium py-3 px-3 rounded-xl flex items-center justify-between hover:border-blue-300 transition text-sm ${saleMode === 'FIADO' ? 'border-purple-300 ring-2 ring-purple-50 text-purple-700' : 'border-slate-200'}`}>
-                                        <span className="flex items-center gap-2"><User size={16}/> {saleMode === 'FIADO' ? 'Selecione o Cliente...' : 'Venda Anônima'}</span><Plus size={14}/>
+                                    <button onClick={() => setIsCustomerDropdownOpen(!isCustomerDropdownOpen)} className={`w-full bg-white border text-slate-500 font-medium py-3 px-3 rounded-xl flex items-center justify-between hover:border-blue-300 transition text-sm ${saleMode === 'CREDIT' ? 'border-purple-300 ring-2 ring-purple-50 text-purple-700' : 'border-slate-200'}`}>
+                                        <span className="flex items-center gap-2"><User size={16}/> {saleMode === 'CREDIT' ? 'Selecione o Cliente...' : 'Cliente (Opcional)'}</span><Plus size={14}/>
                                     </button>
                                     {isCustomerDropdownOpen && (
                                         <div className="absolute top-12 left-0 w-full bg-white shadow-xl border border-slate-100 rounded-xl p-2 z-50 max-h-60 overflow-y-auto">
                                             <input className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm outline-none mb-2" placeholder="Buscar..." autoFocus value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} />
-                                            {saleMode === 'STANDARD' && <button onClick={() => { setSelectedCustomer(null); setIsCustomerDropdownOpen(false); }} className="w-full text-left p-2 hover:bg-slate-50 rounded-lg text-sm text-slate-500 font-medium border-b border-slate-50 mb-1">-- Venda Anônima --</button>}
+                                            {saleMode === 'STANDARD' && <button onClick={() => { setSelectedCustomer(null); setIsCustomerDropdownOpen(false); }} className="w-full text-left p-2 hover:bg-slate-50 rounded-lg text-sm text-slate-500 font-medium border-b border-slate-50 mb-1">-- Sem Cliente --</button>}
                                             {filteredCustomers.map(c => (
                                                 <button key={c.id} onClick={() => { setSelectedCustomer(c); setIsCustomerDropdownOpen(false); }} className="w-full text-left p-2 hover:bg-blue-50 rounded-lg text-sm text-slate-700 font-medium">{c.name}</button>
                                             ))}
@@ -373,10 +373,10 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                             
                             <button 
                                 onClick={handleFinishSale} 
-                                disabled={cart.length === 0 || (saleMode === 'FIADO' && !selectedCustomer) || isSubmitting} 
-                                className={`w-full text-white py-4 rounded-xl font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed ${saleMode === 'FIADO' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20' : 'bg-green-600 hover:bg-green-700 shadow-green-500/20'}`}
+                                disabled={cart.length === 0 || (saleMode === 'CREDIT' && !selectedCustomer) || isSubmitting} 
+                                className={`w-full text-white py-4 rounded-xl font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed ${saleMode === 'CREDIT' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20' : 'bg-green-600 hover:bg-green-700 shadow-green-500/20'}`}
                             >
-                                {isSubmitting ? 'Processando...' : (saleMode === 'FIADO' ? 'FINALIZAR FIADO' : 'FINALIZAR VENDA')} <ArrowRight size={20} />
+                                {isSubmitting ? 'Processando...' : (saleMode === 'CREDIT' ? 'FINALIZAR COM CRÉDITO' : 'FINALIZAR VENDA')} <ArrowRight size={20} />
                             </button>
                         </div>
                     </div>
@@ -389,7 +389,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                                 <h3 className="text-2xl font-black text-slate-800 mb-1">Venda Concluída!</h3>
                                 {/* Aqui usamos a função tradutora */}
                                 <p className="text-slate-500 font-bold text-sm">
-                                    Registrado como {saleMode === 'FIADO' ? 'Fiado' : getPaymentLabel(paymentMethod)}.
+                                    Registrado como {saleMode === 'CREDIT' ? 'Crédito' : getPaymentLabel(paymentMethod)}.
                                 </p>
                             </div>
                         </div>

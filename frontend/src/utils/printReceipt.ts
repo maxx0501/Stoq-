@@ -9,7 +9,7 @@ export const printReceipt = (sale: any, storeName: string) => {
   
   // Traduz método de pagamento
   const getPaymentName = (method: string) => {
-      const map: any = { 'MONEY': 'DINHEIRO', 'CREDIT_CARD': 'CARTÃO CRÉDITO', 'DEBIT_CARD': 'CARTÃO DÉBITO', 'PIX': 'PIX', 'CREDIT_STORE': 'FIADO / CREDIÁRIO' };
+      const map: any = { 'MONEY': 'DINHEIRO', 'CREDIT_CARD': 'CARTÃO CRÉDITO', 'DEBIT_CARD': 'CARTÃO DÉBITO', 'PIX': 'PIX', 'CREDIT_STORE': 'CRÉDITO' };
       return map[method] || method;
   };
 
@@ -77,7 +77,7 @@ export const printReceipt = (sale: any, storeName: string) => {
         </div>
 
         ${sale.paymentMethod === 'CREDIT_STORE' ? `
-          <div style="margin-top: 5px; font-weight: bold; text-align: center;">*** CONTA A PRAZO ***</div>
+          <div style="margin-top: 5px; font-weight: bold; text-align: center;">*** VENDA A CRÉDITO ***</div>
         ` : ''}
 
         <div class="footer">

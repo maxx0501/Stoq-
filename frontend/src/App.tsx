@@ -259,13 +259,17 @@ export default function App() {
 
           if (res.ok) {
               alert("Senha atualizada com sucesso! Bem-vindo.");
+              setForceNewPass('');
+              setForceConfirmPass('');
               // Atualiza o estado local para liberar o acesso
               setUser((prev: any) => ({ ...prev, mustChangePassword: false }));
           } else {
-              alert("Erro ao atualizar senha.");
+              const errorData = await res.json();
+              alert("Erro ao atualizar senha: " + (errorData.error || "Tente novamente."));
           }
       } catch (error) {
-          alert("Erro de conexão.");
+          console.error('Erro de conexão:', error);
+          alert("Erro de conexão ao atualizar senha.");
       } finally {
           setForcePasswordLoading(false);
       }
