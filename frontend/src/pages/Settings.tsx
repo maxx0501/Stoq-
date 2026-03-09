@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Store, Shield, Save, CheckCircle, Trash2, AlertTriangle, X, Loader2, Check } from 'lucide-react';
+import { Store, Shield, Save, CheckCircle, Trash2, AlertTriangle, X, Loader2, Check, CreditCard } from 'lucide-react';
 
 export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
-  const [activeTab, setActiveTab] = useState<'store' | 'security'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'security' | 'subscription'>('store');
   const [isLoading, setIsLoading] = useState(false);
 
   // Estados de Feedback
@@ -76,13 +76,13 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
         if (response.ok) {
             const updatedStore = await response.json();
             localStorage.setItem('stoq_store_name', updatedStore.name);
-            showSuccess("Nome da loja atualizado!");
-            setTimeout(() => window.location.reload(), 1000);
+            showSuccess("Nome da loja atualizado com sucesso!");
+            setTimeout(() => window.location.reload(), 1500);
         } else {
-            showError("Erro ao atualizar loja.");
+            showError("Não foi possível atualizar o nome da loja. Tente novamente.");
         }
     } catch (error) {
-        showError("Erro de conexão.");
+        showError("Problema de conexão. Verifique sua internet e tente novamente.");
     } finally {
         setIsLoading(false);
     }
@@ -94,17 +94,17 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
     
     const allValid = Object.values(passValidations).every(Boolean);
     if (!allValid) {
-        showError("A senha precisa atender a todos os requisitos.");
+        showError("Sua senha precisa atender a todos os requisitos listados.");
         return;
     }
 
     if (securityData.newPassword !== securityData.confirmPassword) {
-        showError("As senhas não coincidem.");
+        showError("As senhas digitadas não conferem. Digite novamente.");
         return;
     }
 
     if (!securityData.currentPassword) {
-        showError("Digite sua senha atual.");
+        showError("Digite sua senha atual para confirmar a alteração.");
         return;
     }
 
@@ -122,10 +122,10 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
             setSecurityData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } else {
             const data = await response.json();
-            showError(data.error || "Erro ao alterar senha.");
+            showError(data.error || "Não foi possível alterar a senha. Verifique se a senha atual está correta.");
         }
     } catch (error) {
-        showError("Erro de conexão.");
+        showError("Problema de conexão. Verifique sua internet e tente novamente.");
     } finally {
         setIsLoading(false);
     }
@@ -152,6 +152,40 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
       }
   };
 
+  // --- 4. CANCELAR ASSINATURA ---
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  
+  const handleCancelSubscription = async () => {
+      setIsLoading(true);
+      try {
+          const token = localStorage.getItem('stoq_token');
+          const storeId = localStorage.getItem('stoq_store_id');
+
+          const response = await fetch(`${API_URL}/payments/cancel-subscription`, {
+              method: 'POST',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}` 
+              },
+              body: JSON.stringify({ storeId })
+          });
+
+          if (response.ok) {
+              setShowCancelModal(false);
+              showSuccess("Assinatura cancelada. Você terá acesso até o final do período pago.");
+              // Atualiza user no estado
+              setUser({ ...user, isSubscribed: false });
+          } else {
+              const data = await response.json();
+              showError(data.error || "Erro ao cancelar assinatura.");
+          }
+      } catch (error) {
+          showError("Erro de conexão.");
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
   return (
     <div className="flex h-screen bg-[#F8F9FC] font-sans">
       <Sidebar active="settings" onNavigate={onNavigate} onLogout={onLogout} user={user} />
@@ -174,6 +208,9 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         <div className="p-2 space-y-1">
                             <button onClick={() => setActiveTab('store')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'store' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
                                 <Store size={18} /> Dados da Loja
+                            </button>
+                            <button onClick={() => setActiveTab('subscription')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'subscription' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                <CreditCard size={18} /> Assinatura
                             </button>
                             <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'security' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
                                 <Shield size={18} /> Segurança
@@ -202,6 +239,71 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        )}
+
+                        {/* ABA: ASSINATURA */}
+                        {activeTab === 'subscription' && (
+                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <h2 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><CreditCard className="text-blue-500" size={20}/> Seu Plano</h2>
+                                
+                                <div className={`border rounded-xl p-6 mb-8 ${
+                                  user?.isSubscribed 
+                                    ? 'bg-emerald-50 border-emerald-200' 
+                                    : 'bg-blue-50 border-blue-200'
+                                }`}>
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                                          user?.isSubscribed 
+                                            ? 'bg-emerald-100' 
+                                            : 'bg-blue-100'
+                                        }`}>
+                                            <CheckCircle className={user?.isSubscribed ? 'text-emerald-600' : 'text-blue-600'} size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className={`font-bold ${
+                                              user?.isSubscribed 
+                                                ? 'text-emerald-900' 
+                                                : 'text-blue-900'
+                                            }`}>
+                                              {user?.isSubscribed ? 'Premium Ativo' : 'Período de Teste'}
+                                            </h3>
+                                            <p className={`text-sm ${
+                                              user?.isSubscribed 
+                                                ? 'text-emerald-700' 
+                                                : 'text-blue-700'
+                                            }`}>
+                                              {user?.isSubscribed 
+                                                ? 'Seu acesso está ativo com todos os recursos' 
+                                                : 'Teste grátis com acesso completo'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className={`text-sm ${
+                                      user?.isSubscribed 
+                                        ? 'text-emerald-700' 
+                                        : 'text-blue-700'
+                                    }`}>
+                                        {user?.isSubscribed 
+                                            ? "Sua assinatura está ativa e será renovada automaticamente em 30 dias por R$ 49,90. Você pode cancelar quando quiser."
+                                            : "Você está em período de teste grátis. Após 30 dias, sua assinatura será renovada por R$ 49,90/mês, a menos que cancele."}
+                                    </p>
+                                </div>
+
+                                {user?.isSubscribed && (
+                                    <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                                        <div>
+                                            <h4 className="font-bold text-red-900 mb-1">Gerenciar Assinatura</h4>
+                                            <p className="text-red-700 text-sm max-w-md">Se desejar cancelar, você manterá acesso até o final do período pago. Sem multas ou taxas de cancelamento.</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => setShowCancelModal(true)} 
+                                            className="bg-white border-2 border-red-200 text-red-600 hover:bg-red-600 hover:text-white px-6 py-3 rounded-xl font-bold transition flex items-center gap-2 shrink-0"
+                                        >
+                                            Cancelar Assinatura
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -319,7 +421,24 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                 </div>
             </div>
         )}
-
+        {/* MODAL CANCELAR ASSINATURA */}
+        {showCancelModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">
+                <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-2 border-orange-100">
+                    <button onClick={() => setShowCancelModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"><X size={20}/></button>
+                    <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
+                    <h3 className="text-2xl font-black text-slate-800 mb-3 text-center">Cancelar Assinatura?</h3>
+                    <p className="text-slate-600 font-medium text-sm text-center mb-3">Se cancelar agora, você manterá acesso até o final do período pago.</p>
+                    <p className="text-slate-500 text-xs text-center mb-8">Sem penalidades ou taxas de cancelamento.</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => setShowCancelModal(false)} className="bg-blue-50 text-blue-700 py-3.5 rounded-xl font-bold hover:bg-blue-100 transition border border-blue-200">Manter</button>
+                        <button onClick={handleCancelSubscription} disabled={isLoading} className="bg-orange-600 text-white py-3.5 rounded-xl font-bold hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
+                            {isLoading ? <Loader2 className="animate-spin" size={18}/> : ''} Confirmar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         {/* MODAL SUCESSO/ERRO */}
         {showSuccessModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">

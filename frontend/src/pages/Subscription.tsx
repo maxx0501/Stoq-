@@ -3,11 +3,46 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 import { 
-  Check, ShieldCheck, Calendar, CreditCard, Lock, Loader2, Rocket, Star
+  Check, ShieldCheck, Calendar, CreditCard, Lock, Loader2, Rocket, Star, Gift, Shield
 } from 'lucide-react';
 
 export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
-  const [isLoading, setIsLoading] = useState<'monthly' | 'yearly' | null>(null);
+  const [isLoading, setIsLoading] = useState<'monthly' | 'yearly' | 'free' | null>(null);
+
+  // --- ATIVAR PLANO GRÁTIS (redirects to MP para registrar cartão) ---
+  const handleFreeSubscription = async () => {
+    setIsLoading('free');
+    try {
+        const storeId = localStorage.getItem('stoq_store_id');
+
+        if (!storeId) {
+            alert("Erro: Informações da loja não encontradas. Por favor, recarregue a página e tente novamente.");
+            return;
+        }
+
+        const response = await fetch(`${API_URL}/payments/create-checkout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ storeId })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.init_point) {
+            // Redireciona para MercadoPago
+            window.location.href = data.init_point;
+        } else {
+            alert("Não foi possível iniciar o checkout. " + (data.error || "Tente novamente mais tarde."));
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Problema de conexão. Verifique sua internet e tente novamente.");
+    } finally {
+        setIsLoading(null);
+    }
+  };
 
   // --- LÓGICA DE PAGAMENTO ---
   const handleSubscribe = async (planType: 'monthly' | 'yearly') => {
@@ -69,14 +104,61 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
                 {/* Header da Página */}
                 <div className="text-center space-y-4 pt-8 mb-12">
                     <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">
-                        <Rocket size={14} /> Upgrade
+                        <Rocket size={14} /> Comece Agora
                     </span>
                     <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-                        Invista no crescimento <br/> da sua loja.
+                        Experimente Stoq+ <br/> por 1 mês completamente grátis.
                     </h1>
                     <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-                        Desbloqueie todo o potencial do Stoq+. Sem contratos de fidelidade, cancele quando quiser.
+                        Teste todas as funcionalidades premium sem custo. Comece agora e aproveite 30 dias de acesso completo.
                     </p>
+                </div>
+
+                {/* INFORMAÇÕES DO PLANO */}
+                <div className="max-w-2xl mx-auto bg-blue-50 border-l-4 border-blue-600 p-6 rounded-lg space-y-4">
+                    <div className="flex gap-3">
+                        <Shield size={20} className="text-blue-600 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-bold text-blue-900 text-sm mb-3">Como funciona seu acesso:</p>
+                            <ul className="text-blue-800 text-sm space-y-2">
+                                <li className="flex items-start gap-2"><span className="text-blue-600 font-bold">•</span> <strong>Primeiros 30 dias:</strong> Acesso grátis a todas as funcionalidades</li>
+                                <li className="flex items-start gap-2"><span className="text-blue-600 font-bold">•</span> <strong>Após 30 dias:</strong> Cobrança automática de R$ 49,90/mês</li>
+                                <li className="flex items-start gap-2"><span className="text-blue-600 font-bold">•</span> Cancele a qualquer momento sem penalidades</li>
+                                <li className="flex items-start gap-2"><span className="text-blue-600 font-bold">•</span> Seu cartão é protegido com criptografia SSL</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {/* BOTÃO TESTE GRÁTIS - DESTAQUE */}
+                <div className="max-w-2xl mx-auto">
+                    <button 
+                        onClick={handleFreeSubscription}
+                        disabled={isLoading !== null}
+                        className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-6 rounded-2xl font-bold text-lg hover:from-emerald-600 hover:to-emerald-700 transition shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-3 border-2 border-emerald-400"
+                    >
+                        {isLoading === 'free' ? (
+                            <>
+                                <Loader2 className="animate-spin" size={24} />
+                                Redirecionando para Mercado Pago...
+                            </>
+                        ) : (
+                            <>
+                                <Gift size={28} />
+                                <div className="text-left">
+                                    <div>Começar com 1 Mês Grátis</div>
+                                    <div className="text-sm font-normal text-emerald-100">Registre cartão • Sem cobrança • Cancele quando quiser</div>
+                                </div>
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                {/* SEPARADOR */}
+                <div className="flex items-center gap-4 max-w-2xl mx-auto">
+                    <div className="flex-1 h-px bg-slate-200"></div>
+                    <span className="text-slate-400 text-xs font-bold uppercase">Ou escolha um plano pago</span>
+                    <div className="flex-1 h-px bg-slate-200"></div>
                 </div>
 
                 {/* GRID DE PLANOS */}
