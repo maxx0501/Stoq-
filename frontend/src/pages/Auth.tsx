@@ -347,7 +347,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                   </button>
 
                   <div className="mb-8">
-                      <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-black text-xl italic shadow-lg shadow-slate-200">S+</div>
+                      <img src="/logo.png" alt="Stoq+" className="w-12 h-12 object-contain mx-auto mb-4" />
                       <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Redefinir Senha</h2>
                       <p className="text-slate-500 text-sm">Crie uma nova senha forte para sua conta</p>
                   </div>
@@ -415,7 +415,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                   </button>
 
                   <div className="mb-8">
-                      <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-black text-xl italic shadow-lg shadow-slate-200">S+</div>
+                      <img src="/logo.png" alt="Stoq+" className="w-12 h-12 object-contain mx-auto mb-4" />
                       <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Recuperar Senha</h2>
                       <p className="text-slate-500 text-sm">Informe seu e-mail para receber um link de recuperação</p>
                   </div>
@@ -467,7 +467,7 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
         </button>
 
         <div className="mb-8">
-            <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-black text-xl italic shadow-lg shadow-slate-200">S+</div>
+            <img src="/logo.png" alt="Stoq+" className="w-12 h-12 object-contain mx-auto mb-4" />
             <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
             {mode === 'login' ? 'Acesse sua conta' : 'Crie sua conta segura'}
             </h2>

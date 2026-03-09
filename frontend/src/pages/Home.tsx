@@ -28,9 +28,7 @@ export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <span className="text-white font-black text-lg italic">S+</span>
-                </div>
+                <img src="/logo.png" alt="Stoq+" className="w-9 h-9 object-contain" />
                 <span className="text-xl font-black tracking-tight text-slate-800">Stoq<span className="text-blue-600">+</span></span>
             </div>
             
@@ -267,9 +265,7 @@ export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
           
           <div className="max-w-sm">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-                <span className="font-bold text-white italic">S+</span>
-              </div>
+              <img src="/logo.png" alt="Stoq+" className="w-8 h-8 object-contain" />
               <span className="text-xl font-black text-slate-900 tracking-tight">Stoq+</span>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed">

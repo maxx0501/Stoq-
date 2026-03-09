@@ -68,9 +68,7 @@ export const Sidebar = ({ active, onNavigate, onLogout, user }: SidebarProps) =>
     <aside className="w-64 bg-[#0f172a] hidden md:flex flex-col justify-between p-6 text-white shrink-0 transition-all duration-300">
       <div>
         <div className="flex items-center gap-3 px-2 mb-10">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/50">
-            <span className="text-white font-black text-xl italic">S+</span>
-          </div>
+          <img src="/logo.png" alt="Stoq+" className="w-10 h-10 object-contain" />
           <div>
             <h1 className="text-lg font-bold leading-none italic">Stoq+</h1>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide">GESTÃO INTELIGENTE</p>
