@@ -8,7 +8,6 @@ import {
   BarChart3, 
   Settings, 
   CreditCard, 
-  ShieldAlert, 
   DollarSign, 
   UserCog,      
   TrendingDown,
@@ -150,56 +149,63 @@ export const Sidebar = ({ active, onNavigate, onLogout, user, isMobileOpen, onMo
             </button>
           )}
           
-          {user?.isSuperAdmin && (
-            <button onClick={() => onNavigate('admin')} className={getButtonClass('admin')}>
-              <ShieldAlert size={18} /> <span>Painel CEO</span>
-            </button>
-          )}
+
         </nav>
       </div>
 
       <div className="space-y-6">
         
-        {!isSeller && !isPro && (
-            <div className={`rounded-2xl p-5 border relative overflow-hidden group transition-all duration-300 ${
-                isTrialExpired 
-                ? 'bg-red-900/10 border-red-500/30'
-                : 'bg-slate-800/50 border-slate-700/50'
-            }`}>
-                <div className={`absolute -right-6 -top-6 w-20 h-20 rounded-full transition-all ${
-                    isTrialExpired ? 'bg-red-500/10' : 'bg-slate-500/10 group-hover:bg-slate-500/20'
-                }`}></div>
-                
-                <div className="flex justify-between items-center mb-2 relative z-10">
-                    <span className={`font-bold text-sm ${isTrialExpired ? 'text-red-400' : 'text-white'}`}>
-                        {isTrialExpired ? 'Plano Expirado' : 'Período Grátis'}
-                    </span>
-                    
-                    {!isTrialExpired && (
+        {!isSeller && (() => {
+            // Se já é PRO com assinatura ativa, não mostra nada
+            if (isPro && user?.isSubscribed) return null;
+
+            // Se é PRO mas sem assinatura ativa (expirou)
+            if (isPro && !user?.isSubscribed) return (
+                <div className="rounded-2xl p-5 border relative overflow-hidden group transition-all duration-300 bg-red-900/10 border-red-500/30">
+                    <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-red-500/10"></div>
+                    <div className="flex justify-between items-center mb-2 relative z-10">
+                        <span className="font-bold text-sm text-red-400">Plano Expirado</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-3 leading-tight">Seu acesso foi bloqueado. Assine para continuar.</p>
+                    <button onClick={() => onNavigate('subscription')} className="w-full text-[10px] font-bold py-2 rounded-lg transition-all border flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border-red-600/30">
+                        Regularizar Agora <Sparkles size={10}/>
+                    </button>
+                </div>
+            );
+
+            // Plano FREE - verifica trial
+            if (isTrialExpired) return (
+                <div className="rounded-2xl p-5 border relative overflow-hidden group transition-all duration-300 bg-red-900/10 border-red-500/30">
+                    <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-red-500/10"></div>
+                    <div className="flex justify-between items-center mb-2 relative z-10">
+                        <span className="font-bold text-sm text-red-400">Assine o Stoq+</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-3 leading-tight">Seu período grátis acabou. Assine para continuar usando.</p>
+                    <button onClick={() => onNavigate('subscription')} className="w-full text-[10px] font-bold py-2 rounded-lg transition-all border flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border-red-600/30">
+                        Assinar Agora <Sparkles size={10}/>
+                    </button>
+                </div>
+            );
+
+            // Em período de teste
+            if (daysLeft > 0) return (
+                <div className="rounded-2xl p-5 border relative overflow-hidden group transition-all duration-300 bg-slate-800/50 border-slate-700/50">
+                    <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-slate-500/10 group-hover:bg-slate-500/20"></div>
+                    <div className="flex justify-between items-center mb-2 relative z-10">
+                        <span className="font-bold text-sm text-white">Período Grátis</span>
                         <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full border border-blue-500/30 font-bold flex items-center gap-1">
                             <Clock size={10} /> {daysLeft} DIAS
                         </span>
-                    )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-3 leading-tight">Aproveite todos os recursos antes que seu teste acabe.</p>
+                    <button onClick={() => onNavigate('subscription')} className="w-full text-[10px] font-bold py-2 rounded-lg transition-all border flex items-center justify-center gap-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-600/20">
+                        Virar Pro <Sparkles size={10}/>
+                    </button>
                 </div>
-                
-                <p className="text-[10px] text-slate-400 mb-3 leading-tight">
-                    {isTrialExpired 
-                        ? "Seu acesso foi bloqueado. Assine para continuar." 
-                        : "Aproveite todos os recursos antes que seu teste acabe."}
-                </p>
+            );
 
-                <button 
-                    onClick={() => onNavigate('subscription')}
-                    className={`w-full text-[10px] font-bold py-2 rounded-lg transition-all border flex items-center justify-center gap-2 ${
-                        isTrialExpired 
-                        ? 'bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border-red-600/30'
-                        : 'bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-600/20'
-                    }`}
-                >
-                    {isTrialExpired ? 'Regularizar Agora' : 'Virar Pro'} <Sparkles size={10}/>
-                </button>
-            </div>
-        )}
+            return null;
+        })()}
 
         <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-slate-400 hover:bg-slate-800 hover:text-red-400">
           <LogOut size={18} /> <span>Sair da conta</span>

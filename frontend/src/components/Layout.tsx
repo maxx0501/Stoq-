@@ -41,6 +41,7 @@ export const Layout = ({ active, onNavigate, onLogout, user, storeName, setUser,
           onLogout={onLogout} 
           setUser={setUser}
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          onNavigate={onNavigate}
         />
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {children}

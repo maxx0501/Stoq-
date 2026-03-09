@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock, Menu } from 'lucide-react';
+import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock, Menu, ShieldAlert } from 'lucide-react';
 
-export const Header = ({ user, storeName, onLogout, setUser, onMenuToggle }: any) => {
+export const Header = ({ user, storeName, onLogout, setUser, onMenuToggle, onNavigate }: any) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
@@ -237,6 +237,18 @@ export const Header = ({ user, storeName, onLogout, setUser, onMenuToggle }: any
       {/* DIREITA: Ações */}
       <div className="flex items-center gap-2 md:gap-4">
          
+         {/* Painel CEO - só para SuperAdmin */}
+         {user?.isSuperAdmin && onNavigate && (
+            <button 
+              onClick={() => onNavigate('admin')}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition text-sm font-bold"
+              title="Painel CEO"
+            >
+              <ShieldAlert size={18} />
+              <span className="hidden lg:inline">Painel CEO</span>
+            </button>
+         )}
+
          {/* Notificações */}
          <div className="relative" ref={notifRef}>
             <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(true); }} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">

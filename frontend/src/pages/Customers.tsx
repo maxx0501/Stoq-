@@ -335,33 +335,33 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
                     <form onSubmit={handleSaveCustomer} className="space-y-4">
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nome Completo *</label>
-                            <input className="input-padrao" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required placeholder="Ex: Maria Silva" />
+                            <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required placeholder="Ex: Maria Silva" />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">CPF (Opcional)</label>
-                                <input className="input-padrao" value={form.cpf} onChange={e => setForm({...form, cpf: maskCPF(e.target.value)})} placeholder="000.000.000-00" maxLength={14} />
+                                <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition" value={form.cpf} onChange={e => setForm({...form, cpf: maskCPF(e.target.value)})} placeholder="000.000.000-00" maxLength={14} />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-400 uppercase ml-1">Telefone (Opcional)</label>
-                                <input className="input-padrao" value={form.phone} onChange={e => setForm({...form, phone: maskPhone(e.target.value)})} placeholder="(00) 00000-0000" maxLength={15} />
+                                <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition" value={form.phone} onChange={e => setForm({...form, phone: maskPhone(e.target.value)})} placeholder="(00) 00000-0000" maxLength={15} />
                             </div>
                         </div>
 
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">E-mail (Opcional)</label>
-                            <input className="input-padrao" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="exemplo@email.com" />
+                            <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="exemplo@email.com" />
                         </div>
 
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">Endereço (Opcional)</label>
-                            <input className="input-padrao" value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Rua, Número, Bairro..." />
+                            <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition" value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Rua, Número, Bairro..." />
                         </div>
 
                         <div className="flex gap-3 pt-4">
-                            <button type="button" onClick={() => setIsFormOpen(false)} className="btn-secondary">Cancelar</button>
-                            <button type="submit" disabled={isSaving} className="btn-primary flex justify-center">
+                            <button type="button" onClick={() => setIsFormOpen(false)} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition">Cancelar</button>
+                            <button type="submit" disabled={isSaving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/30 transition active:scale-95 flex justify-center">
                                 {isSaving ? <Loader2 className="animate-spin" size={20}/> : "Salvar"}
                             </button>
                         </div>
