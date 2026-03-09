@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 // Ícones
-import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2 } from 'lucide-react';
+import { Store, Building2, ArrowRight, AlertCircle, Shield, Lock, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 
 // Páginas
 import { Sales } from './pages/Sales';
@@ -21,7 +21,7 @@ import { Expenses } from './pages/Expenses';
 import { Legal } from './pages/Legal';
 
 export default function App() {
-  const [view, setView] = useState<'home' | 'login' | 'signup' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses' | 'terms' | 'privacy' | 'lgpd'>('home'); 
+  const [view, setView] = useState<'home' | 'login' | 'signup' | 'forgot-password' | 'setup-store' | 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses' | 'terms' | 'privacy' | 'lgpd'>('home'); 
 
   const [previousView, setPreviousView] = useState<string>('home');
   const [user, setUser] = useState<any>(null);
@@ -42,6 +42,8 @@ export default function App() {
   const [forcePasswordLoading, setForcePasswordLoading] = useState(false);
   const [forceNewPass, setForceNewPass] = useState('');
   const [forceConfirmPass, setForceConfirmPass] = useState('');
+  const [showForcePassword, setShowForcePassword] = useState(false);
+  const [showForceConfirmPassword, setShowForceConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -61,6 +63,16 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const googleToken = params.get('google_token');
     const userName = params.get('user_name');
+
+    // 0.5. CAPTURA RESET PASSWORD TOKEN
+    const resetToken = params.get('token'); // Captura 'token' que vem do email
+    const path = window.location.pathname;
+    if (path === '/reset-password' && resetToken) {
+        // Mantém o token na URL mas limpa o path
+        window.history.replaceState({}, '', `/?token=${resetToken}`);
+        setView('login');
+        return;
+    }
 
     if (googleToken) {
         window.history.replaceState({}, '', '/');
@@ -99,7 +111,6 @@ export default function App() {
         return; 
     }
 
-    const path = window.location.pathname;
     if (path === '/terms') { setView('terms'); return; }
     if (path === '/privacy') { setView('privacy'); return; }
     if (path === '/lgpd') { setView('lgpd'); return; }
@@ -251,7 +262,7 @@ export default function App() {
       setForcePasswordLoading(true);
       try {
           const token = localStorage.getItem('stoq_token');
-          const res = await fetch(`${API_URL}/auth/change-password`, {
+          const res = await fetch(`${API_URL}/auth/force-change-password`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ newPassword: forceNewPass })
@@ -296,12 +307,13 @@ export default function App() {
                               <div className="relative">
                                   <Lock className="absolute left-3 top-3.5 text-slate-400" size={18}/>
                                   <input 
-                                      type="password" 
-                                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
+                                      type={showForcePassword ? "text" : "password"} 
+                                      className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
                                       placeholder="Mínimo 6 caracteres"
                                       value={forceNewPass}
                                       onChange={e => setForceNewPass(e.target.value)}
                                   />
+                                  <button type="button" onClick={() => setShowForcePassword(!showForcePassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition">{showForcePassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
                               </div>
                           </div>
                           <div>
@@ -309,12 +321,13 @@ export default function App() {
                               <div className="relative">
                                   <CheckCircle className="absolute left-3 top-3.5 text-slate-400" size={18}/>
                                   <input 
-                                      type="password" 
-                                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
+                                      type={showForceConfirmPassword ? "text" : "password"} 
+                                      className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
                                       placeholder="Repita a senha"
                                       value={forceConfirmPass}
                                       onChange={e => setForceConfirmPass(e.target.value)}
                                   />
+                                  <button type="button" onClick={() => setShowForceConfirmPassword(!showForceConfirmPassword)} className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 transition">{showForceConfirmPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
                               </div>
                           </div>
                           <button 
@@ -363,7 +376,7 @@ export default function App() {
         );
       }
 
-      if (view === 'login' || view === 'signup') {
+      if (view === 'login' || view === 'signup' || view === 'forgot-password') {
           return <Auth mode={view} setView={setView} formData={authData} setFormData={setAuthData} onLoginSubmit={handleLogin} onOpenLegal={handleOpenLegal} setUser={setUser} />;
       }
 

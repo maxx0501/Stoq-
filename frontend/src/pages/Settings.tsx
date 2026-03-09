@@ -11,6 +11,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
   // Estados de Feedback
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
   // Estados de Exclusão
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
@@ -19,7 +20,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
   // Dados
   const [storeData, setStoreData] = useState({ name: storeName || '' });
-  const [securityData, setSecurityData] = useState({ newPassword: '', confirmPassword: '' });
+  const [securityData, setSecurityData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
   // Validação de Senha (Igual ao Cadastro)
   const [passValidations, setPassValidations] = useState({
@@ -48,8 +49,16 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
   const showSuccess = (msg: string) => {
     setSuccessMessage(msg);
+    setMessageType('success');
     setShowSuccessModal(true);
     setTimeout(() => setShowSuccessModal(false), 2000);
+  };
+
+  const showError = (msg: string) => {
+    setSuccessMessage(msg);
+    setMessageType('error');
+    setShowSuccessModal(true);
+    setTimeout(() => setShowSuccessModal(false), 3000);
   };
 
   // --- 1. SALVAR LOJA ---
@@ -67,13 +76,13 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
         if (response.ok) {
             const updatedStore = await response.json();
             localStorage.setItem('stoq_store_name', updatedStore.name);
-            window.location.reload(); 
             showSuccess("Nome da loja atualizado!");
+            setTimeout(() => window.location.reload(), 1000);
         } else {
-            alert("Erro ao atualizar loja.");
+            showError("Erro ao atualizar loja.");
         }
     } catch (error) {
-        alert("Erro de conexão.");
+        showError("Erro de conexão.");
     } finally {
         setIsLoading(false);
     }
@@ -83,15 +92,19 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const handleSaveSecurity = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verifica se todas as regras foram cumpridas
     const allValid = Object.values(passValidations).every(Boolean);
     if (!allValid) {
-        alert("A senha precisa atender a todos os requisitos.");
+        showError("A senha precisa atender a todos os requisitos.");
         return;
     }
 
     if (securityData.newPassword !== securityData.confirmPassword) {
-        alert("As senhas não coincidem.");
+        showError("As senhas não coincidem.");
+        return;
+    }
+
+    if (!securityData.currentPassword) {
+        showError("Digite sua senha atual.");
         return;
     }
 
@@ -101,18 +114,18 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
         const response = await fetch(`${API_URL}/auth/change-password`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ newPassword: securityData.newPassword })
+            body: JSON.stringify({ currentPassword: securityData.currentPassword, newPassword: securityData.newPassword })
         });
 
         if (response.ok) {
             showSuccess("Senha alterada com sucesso!");
-            setSecurityData({ newPassword: '', confirmPassword: '' });
+            setSecurityData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } else {
             const data = await response.json();
-            alert(data.error || "Erro ao alterar senha.");
+            showError(data.error || "Erro ao alterar senha.");
         }
     } catch (error) {
-        alert("Erro de conexão.");
+        showError("Erro de conexão.");
     } finally {
         setIsLoading(false);
     }
@@ -129,13 +142,13 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
           if (response.ok) {
               setShowDeleteTypeModal(false);
-              alert("Sua conta foi excluída. Sentiremos sua falta!");
-              onLogout(); 
+              showSuccess("Sua conta foi excluída. Sentiremos sua falta!");
+              setTimeout(() => onLogout(), 2000);
           } else {
-              alert("Erro ao excluir conta. Tente novamente.");
+              showError("Erro ao excluir conta. Tente novamente.");
           }
       } catch (error) {
-          alert("Erro de conexão.");
+          showError("Erro de conexão.");
       }
   };
 
@@ -199,6 +212,15 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                     <h2 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><Shield className="text-blue-500" size={20}/> Alterar Senha</h2>
                                     <form onSubmit={handleSaveSecurity} className="space-y-5 max-w-md">
                                         
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Senha Atual</label>
+                                            <input type="password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:border-blue-500 transition" required 
+                                                value={securityData.currentPassword} 
+                                                onChange={e => setSecurityData({...securityData, currentPassword: e.target.value})} 
+                                                placeholder="Digite sua senha atual"
+                                            />
+                                        </div>
+
                                         <div>
                                             <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Nova Senha</label>
                                             <input type="password" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:border-blue-500 transition" required 
@@ -298,12 +320,25 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
             </div>
         )}
 
-        {/* MODAL SUCESSO */}
+        {/* MODAL SUCESSO/ERRO */}
         {showSuccessModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">
                 <div className="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center transform scale-100 transition-all">
-                    <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-50"><CheckCircle size={48} className="animate-bounce" /></div>
-                    <h3 className="text-2xl font-black text-slate-800 mb-2">Sucesso!</h3>
+                    {messageType === 'success' ? (
+                        <>
+                            <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-50">
+                                <CheckCircle size={48} className="animate-bounce" />
+                            </div>
+                            <h3 className="text-2xl font-black text-emerald-600 mb-2">Sucesso!</h3>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-red-50">
+                                <AlertTriangle size={48} className="animate-pulse" />
+                            </div>
+                            <h3 className="text-2xl font-black text-red-600 mb-2">Erro</h3>
+                        </>
+                    )}
                     <p className="text-slate-500 font-medium text-sm">{successMessage}</p>
                 </div>
             </div>

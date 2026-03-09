@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Mail, Lock, User, ArrowLeft, Check, AlertCircle, CheckCircle2, Send, CheckSquare, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowLeft, Check, AlertCircle, CheckCircle2, Send, CheckSquare, Loader2, Eye, EyeOff } from 'lucide-react';
 
 // Ícone do Google
 const GoogleIcon = () => (
@@ -24,6 +24,26 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [showResendLink, setShowResendLink] = useState(false);
 
+  // --- RESET PASSWORD ---
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  // --- FORGOT PASSWORD ---
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
+  // --- PASSWORD VISIBILITY TOGGLES ---
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
+
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const [passValidations, setPassValidations] = useState({
@@ -34,6 +54,13 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     
+    // Caso 0: Reset Password Token
+    const resetTokenFromURL = params.get('token');
+    if (resetTokenFromURL) {
+        setResetToken(resetTokenFromURL);
+        window.history.replaceState({}, '', '/login');
+    }
+
     // Caso 1: Retorno do Login Google
     const googleToken = params.get('google_token');
     const userName = params.get('user_name');
@@ -229,8 +256,193 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
       window.location.href = `${API_URL}/auth/google`;
   };
 
+  // --- HANDLER: REDEFINIR SENHA ---
+  const handleResetSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setResetError(null);
+
+      if (!resetPassword.trim()) {
+          setResetError('Por favor, insira sua nova senha.');
+          return;
+      }
+      if (resetPassword.length < 6) {
+          setResetError('A senha deve ter no mínimo 6 caracteres.');
+          return;
+      }
+      if (resetPassword !== resetConfirmPassword) {
+          setResetError('As senhas não coincidem.');
+          return;
+      }
+
+      setResetLoading(true);
+      try {
+          const res = await fetch(`${API_URL}/auth/reset-password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: resetToken, newPassword: resetPassword })
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) throw new Error(data.error || 'Erro ao redefinir senha');
+
+          setResetSuccess(true);
+      } catch (err: any) {
+          setResetError(err.message);
+      } finally {
+          setResetLoading(false);
+      }
+  };
+
+  // --- HANDLER: ESQUECI MINHA SENHA ---
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setForgotError(null);
+
+      if (!forgotEmail.trim()) {
+          setForgotError('Por favor, insira seu e-mail.');
+          return;
+      }
+
+      setForgotLoading(true);
+      try {
+          const res = await fetch(`${API_URL}/auth/forgot-password`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: forgotEmail })
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) throw new Error(data.error || 'Erro ao enviar e-mail');
+
+          setForgotSuccess(true);
+      } catch (err: any) {
+          setForgotError(err.message);
+      } finally {
+          setForgotLoading(false);
+      }
+  };
+
+  // --- TELA: REDEFINIR SENHA ---
+  if (resetToken) {
+      if (resetSuccess) {
+          return (
+              <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
+                  <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
+                      <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={32} /></div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-4">Senha Redefinida</h2>
+                      <p className="text-slate-500 mb-8 leading-relaxed">Sua senha foi atualizada com sucesso! Agora você pode fazer login com sua nova senha.</p>
+                      <button onClick={() => { setResetToken(null); setResetPassword(''); setResetConfirmPassword(''); setResetSuccess(false); setView('login'); }} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition">Voltar para o Login</button>
+                  </div>
+              </div>
+          );
+      }
+
+      return (
+          <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
+              <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 md:p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
+                  <button onClick={() => { setResetToken(null); setView('login'); }} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition mb-8 font-bold text-sm">
+                      <ArrowLeft size={16} /> Voltar para Login
+                  </button>
+
+                  <div className="mb-8">
+                      <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-black text-xl italic shadow-lg shadow-slate-200">S+</div>
+                      <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Redefinir Senha</h2>
+                      <p className="text-slate-500 text-sm">Crie uma nova senha forte para sua conta</p>
+                  </div>
+
+                  {resetError && (
+                      <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium flex items-center gap-3 mb-6 text-left border border-red-100 animate-in shake">
+                          <AlertCircle size={20} className="shrink-0"/> {resetError}
+                      </div>
+                  )}
+
+                  <form onSubmit={handleResetSubmit} className="space-y-4">
+                      <div className="text-left">
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Nova Senha</label>
+                          <div className="relative group">
+                              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Lock size={18}/></div>
+                              <input type={showResetPassword ? "text" : "password"} className="w-full pl-11 pr-11 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="Sua nova senha" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} />
+                              <button type="button" onClick={() => setShowResetPassword(!showResetPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition">{showResetPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+                          </div>
+                      </div>
+
+                      <div className="text-left">
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Confirmar Senha</label>
+                          <div className="relative group">
+                              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                  {resetPassword && resetPassword === resetConfirmPassword && resetPassword.length >= 6 ? <CheckCircle2 size={18} className="text-emerald-500"/> : <Lock size={18}/>}
+                              </div>
+                              <input type={showResetConfirmPassword ? "text" : "password"} className={`w-full pl-11 pr-11 py-3.5 bg-slate-50 border-2 rounded-xl outline-none transition font-medium text-slate-700 ${resetPassword && resetConfirmPassword && resetPassword !== resetConfirmPassword ? 'border-red-200 focus:border-red-500' : 'border-slate-100 focus:border-blue-600'}`} placeholder="Confirme sua nova senha" value={resetConfirmPassword} onChange={(e) => setResetConfirmPassword(e.target.value)} />
+                              <button type="button" onClick={() => setShowResetConfirmPassword(!showResetConfirmPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition">{showResetConfirmPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
+                          </div>
+                      </div>
+
+                      <button disabled={resetLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition mt-6 shadow-lg shadow-slate-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                          {resetLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Redefinir Senha'}
+                      </button>
+                  </form>
+              </div>
+          </div>
+      );
+  }
+
   // ... (O restante do render - isEmailSent e formulários - permanece igual ao seu código original)
   // Vou apenas devolver a estrutura renderizada para garantir:
+
+  // --- TELA: ESQUECI MINHA SENHA ---
+  if (mode === 'forgot-password') {
+      if (forgotSuccess) {
+          return (
+              <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
+                  <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
+                      <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"><Send size={32} /></div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-4">Verifique seu e-mail</h2>
+                      <p className="text-slate-500 mb-8 leading-relaxed">Enviamos um link de recuperação para <br/><span className="font-bold text-slate-800">{forgotEmail}</span>.<br/><br/>O link é válido por 1 hora.</p>
+                      <div className="bg-amber-50 p-4 rounded-xl text-xs text-amber-700 mb-8 border border-amber-100">⚠️ Verifique sua caixa de spam se não receber em alguns minutos.</div>
+                      <button onClick={() => { setForgotSuccess(false); setForgotEmail(''); setView('login'); }} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-black transition">Voltar para o Login</button>
+                  </div>
+              </div>
+          );
+      }
+
+      return (
+          <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
+              <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 md:p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
+                  <button onClick={() => setView('login')} className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition mb-8 font-bold text-sm">
+                      <ArrowLeft size={16} /> Voltar para Login
+                  </button>
+
+                  <div className="mb-8">
+                      <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mx-auto mb-4 text-white font-black text-xl italic shadow-lg shadow-slate-200">S+</div>
+                      <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Recuperar Senha</h2>
+                      <p className="text-slate-500 text-sm">Informe seu e-mail para receber um link de recuperação</p>
+                  </div>
+
+                  {forgotError && (
+                      <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium flex items-center gap-3 mb-6 text-left border border-red-100 animate-in shake">
+                          <AlertCircle size={20} className="shrink-0"/> {forgotError}
+                      </div>
+                  )}
+
+                  <form onSubmit={handleForgotSubmit} className="space-y-4">
+                      <div className="text-left">
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">E-mail Corporativo</label>
+                          <div className="relative group">
+                              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Mail size={18}/></div>
+                              <input type="email" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="seu@email.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
+                          </div>
+                      </div>
+
+                      <button disabled={forgotLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition mt-6 shadow-lg shadow-slate-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                          {forgotLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar Link de Recuperação'}
+                      </button>
+                  </form>
+              </div>
+          </div>
+      );
+  }
 
   if (isEmailSent) {
       return (
@@ -301,17 +513,11 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Senha</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Lock size={18}/></div>
-              <input ref={passwordRef} type="password" className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="Senha" value={formData.password} onChange={(e) => handleChange('password', e.target.value)} autoComplete="current-password" />
+              <input ref={passwordRef} type={showPassword ? "text" : "password"} className="w-full pl-11 pr-11 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 transition font-medium text-slate-700" placeholder="Senha" value={formData.password} onChange={(e) => handleChange('password', e.target.value)} autoComplete="current-password" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition">{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
             </div>
-            
             {mode === 'signup' && (
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-400 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <div className={`flex items-center gap-1.5 ${passValidations.length ? 'text-emerald-600' : ''}`}>{passValidations.length ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Mínimo 8 caracteres</div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.upper ? 'text-emerald-600' : ''}`}>{passValidations.upper ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Letra Maiúscula</div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.lower ? 'text-emerald-600' : ''}`}>{passValidations.lower ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Letra Minúscula</div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.number ? 'text-emerald-600' : ''}`}>{passValidations.number ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Número</div>
-                    <div className={`flex items-center gap-1.5 ${passValidations.special ? 'text-emerald-600' : ''}`}>{passValidations.special ? <Check size={12}/> : <div className="w-3 h-3 rounded-full border-2 border-slate-300"></div>} Caractere Especial</div>
-                </div>
+                <p className="text-xs text-slate-400 mt-1 ml-1">Mín. 8 caracteres, com maiúsculas, minúsculas, números e símbolos</p>
             )}
           </div>
 
@@ -322,7 +528,8 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                     {formData.password && formData.password === confirmPassword && confirmPassword.length >= 8 ? <CheckCircle2 size={18} className="text-emerald-500"/> : <Lock size={18}/>}
                 </div>
-                <input type="password" className={`w-full pl-11 pr-4 py-3.5 bg-slate-50 border-2 rounded-xl outline-none transition font-medium text-slate-700 ${formData.password && confirmPassword && formData.password !== confirmPassword ? 'border-red-200 focus:border-red-500' : 'border-slate-100 focus:border-blue-600'}`} placeholder="Repita a senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+                <input type={showConfirmPassword ? "text" : "password"} className={`w-full pl-11 pr-11 py-3.5 bg-slate-50 border-2 rounded-xl outline-none transition font-medium text-slate-700 ${formData.password && confirmPassword && formData.password !== confirmPassword ? 'border-red-200 focus:border-red-500' : 'border-slate-100 focus:border-blue-600'}`} placeholder="Repita a senha" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition">{showConfirmPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
               </div>
             </div>
           )}
@@ -336,6 +543,14 @@ export const Auth = ({ mode, setView, formData, setFormData, onLoginSubmit, onOp
                     Li e concordo com os <button type="button" onClick={() => onOpenLegal('terms')} className="text-blue-600 font-bold hover:underline">Termos de Uso</button> e <button type="button" onClick={() => onOpenLegal('privacy')} className="text-blue-600 font-bold hover:underline">Política de Privacidade</button> do Stoq+.
                 </p>
             </div>
+          )}
+
+          {mode === 'login' && (
+              <div className="text-right mt-2">
+                  <button type="button" onClick={() => { setView('forgot-password'); setError(null); setSuccessMsg(null); }} className="text-xs text-blue-600 font-bold hover:text-blue-700 transition">
+                      Esqueci minha senha
+                  </button>
+              </div>
           )}
 
           <button disabled={isLoading} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition mt-6 shadow-lg shadow-slate-900/20 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2">

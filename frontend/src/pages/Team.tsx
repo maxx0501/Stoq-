@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
-import { Users, UserPlus, ShieldCheck, Trash2, Edit, CheckCircle, XCircle, BarChart3, Activity, ShoppingBag, Package } from 'lucide-react';
+import { Users, UserPlus, ShieldCheck, Trash2, Edit, CheckCircle, XCircle, BarChart3, Activity, ShoppingBag, Package, Lock, Eye, EyeOff, AlertTriangle, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
@@ -14,8 +14,24 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [targetMember, setTargetMember] = useState<any>(null); 
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // <--- NOVO
-  const [successMessage, setSuccessMessage] = useState(''); // <--- NOVO
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  
+  // Password Change Modal
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordModalUserId, setPasswordModalUserId] = useState<string | null>(null);
+  const [passwordModalUserName, setPasswordModalUserName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showMainPassword, setShowMainPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Delete Confirmation Modal
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState('');
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'SELLER', canSell: true, canManageProducts: false });
 
@@ -52,36 +68,91 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Demitir este funcionário?")) {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('stoq_token');
-        const res = await fetch(`${API_URL}/sellers/${id}`, { 
-          method: 'DELETE', 
-          headers: { 'Authorization': `Bearer ${token}` } 
-        });
-        
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({ error: 'Erro ao deletar' }));
-          throw new Error(data.error || 'Erro ao deletar');
-        }
-        
-        setSuccessMessage("Funcionário removido!");
-        setShowSuccessModal(true);
-        setTimeout(() => setShowSuccessModal(false), 2000);
-        await fetchTeam();
-      } catch (error: any) {
-        alert(error.message || 'Erro ao deletar funcionário');
-      } finally {
-        setIsLoading(false);
+  const handleResetPassword = (id: string, name: string) => {
+    setPasswordModalUserId(id);
+    setPasswordModalUserName(name);
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowMainPassword(false);
+    setShowConfirmPassword(false);
+    setIsPasswordModalOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      showError('A senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showError('As senhas não conferem.');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const token = localStorage.getItem('stoq_token');
+      
+      const res = await fetch(`${API_URL}/auth/admin-reset-password/${passwordModalUserId}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newPassword })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Erro ao alterar' }));
+        showError(data.error || 'Erro ao alterar senha');
+        return;
       }
+
+      setIsPasswordModalOpen(false);
+      showSuccess(`Senha de ${passwordModalUserName} alterada com sucesso!`);
+    } catch (error: any) {
+      showError(error.message || 'Erro ao alterar senha');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleteTargetId(id);
+    setDeleteTargetName(team.find(m => m.id === id)?.name || 'Funcionário');
+    setShowDeleteConfirmModal(true);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTargetId) return;
+    
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('stoq_token');
+      const res = await fetch(`${API_URL}/sellers/${deleteTargetId}`, { 
+        method: 'DELETE', 
+        headers: { 'Authorization': `Bearer ${token}` } 
+      });
+      
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Erro ao deletar' }));
+        showError(data.error || 'Erro ao remover funcionário');
+        return;
+      }
+      
+      setShowDeleteConfirmModal(false);
+      showSuccess("Funcionário removido com sucesso!");
+      await fetchTeam();
+    } catch (error: any) {
+      showError(error.message || 'Erro ao remover funcionário');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return; // Previne cliques múltiplos
+    if (isLoading) return;
     
     setIsLoading(true);
     const token = localStorage.getItem('stoq_token');
@@ -95,7 +166,6 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
             body: JSON.stringify(form)
         });
 
-        // Parse com fallback
         let data;
         try {
             data = await res.json();
@@ -104,24 +174,34 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
         }
 
         if (res.ok) {
-            // SUCESSO VISUAL
             setIsModalOpen(false);
-            setSuccessMessage(isEditMode ? "Permissões atualizadas!" : "Membro adicionado!");
-            setShowSuccessModal(true);
+            showSuccess(isEditMode ? "Permissões atualizadas!" : "Membro adicionado!");
             await fetchTeam();
-            // Fecha sozinho
-            setTimeout(() => setShowSuccessModal(false), 2000);
         } else {
-            alert(data.error || "Erro ao salvar.");
+            showError(data.error || "Erro ao salvar.");
         }
     } catch (error: any) { 
-        alert(error.message || "Erro conexão"); 
+        showError(error.message || "Erro na conexão");
     } finally {
         setIsLoading(false);
     }
   };
 
   const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setMessageType('success');
+    setShowSuccessModal(true);
+    setTimeout(() => setShowSuccessModal(false), 2000);
+  };
+
+  const showError = (msg: string) => {
+    setSuccessMessage(msg);
+    setMessageType('error');
+    setShowSuccessModal(true);
+    setTimeout(() => setShowSuccessModal(false), 3000);
+  };
 
   return (
     <div className="flex h-screen bg-[#F8F9FC] font-sans">
@@ -211,6 +291,7 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
                                     <td className="px-6 py-4 text-center">{member.canManageProducts ? <CheckCircle size={16} className="text-emerald-500 mx-auto"/> : <XCircle size={16} className="text-slate-300 mx-auto"/>}</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <button onClick={() => handleResetPassword(member.id, member.name)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Redefinir Senha"><Lock size={16}/></button>
                                             <button onClick={() => openEditModal(member)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit size={16}/></button>
                                             <button onClick={() => handleDelete(member.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 size={16}/></button>
                                         </div>
@@ -259,15 +340,96 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
             </div>
         )}
 
-        {/* --- MODAL SUCESSO --- */}
-        {showSuccessModal && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-in zoom-in duration-300">
-                <div className="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center">
-                    <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <CheckCircle size={48} className="animate-bounce" />
+        {/* --- MODAL RESET PASSWORD CONFIRM --- */}
+        {isPasswordModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">
+                <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8">
+                    <h2 className="text-xl font-black text-slate-800 mb-2">Redefinir Senha</h2>
+                    <p className="text-sm text-slate-500 mb-6">{passwordModalUserName}</p>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">NOVA SENHA</label>
+                            <div className="relative">
+                                <input 
+                                    type={showMainPassword ? "text" : "password"}
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 pr-11"
+                                    placeholder="Mínimo 6 caracteres"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMainPassword(!showMainPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                    {showMainPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">CONFIRMAR SENHA</label>
+                            <div className="relative">
+                                <input 
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full p-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 pr-11"
+                                    placeholder="Confirme a senha"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                    {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <h3 className="text-2xl font-black text-slate-800 mb-1">Sucesso!</h3>
-                    <p className="text-slate-500 font-bold">{successMessage}</p>
+                    <div className="flex gap-3 pt-6">
+                        <button onClick={() => setIsPasswordModalOpen(false)} disabled={isChangingPassword} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl disabled:opacity-50">Cancelar</button>
+                        <button onClick={handleChangePassword} disabled={isChangingPassword} className="flex-1 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 shadow-lg">{isChangingPassword ? 'Alterando...' : 'Alterar Senha'}</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- MODAL CONFIRMAÇÃO DELETE --- */}
+        {showDeleteConfirmModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">
+                <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative border-2 border-red-100">
+                    <button onClick={() => setShowDeleteConfirmModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"><X size={20}/></button>
+                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle size={32} /></div>
+                    <h3 className="text-2xl font-black text-slate-800 mb-2 text-center">Deletar {deleteTargetName}?</h3>
+                    <p className="text-slate-500 font-medium text-sm text-center mb-8">Esta ação é irreversível. O funcionário não poderá mais acessar sua conta.</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => setShowDeleteConfirmModal(false)} className="bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition">Cancelar</button>
+                        <button onClick={executeDelete} disabled={isLoading} className="bg-red-600 text-white py-3.5 rounded-xl font-bold hover:bg-red-700 transition disabled:opacity-50">{isLoading ? 'Removendo...' : 'Deletar'}</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- MODAL SUCESSO/ERRO --- */}
+        {showSuccessModal && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">
+                <div className="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center transform scale-100 transition-all">
+                    {messageType === 'success' ? (
+                        <>
+                            <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-emerald-50">
+                                <CheckCircle size={48} className="animate-bounce" />
+                            </div>
+                            <h3 className="text-2xl font-black text-emerald-600 mb-2">Sucesso!</h3>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-red-50">
+                                <AlertTriangle size={48} className="animate-pulse" />
+                            </div>
+                            <h3 className="text-2xl font-black text-red-600 mb-2">Erro</h3>
+                        </>
+                    )}
+                    <p className="text-slate-500 font-medium text-sm">{successMessage}</p>
                 </div>
             </div>
         )}
