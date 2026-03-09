@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { Lock, TrendingUp, TrendingDown, AlertTriangle, Calculator, CheckCircle, X, History, Wallet, EyeOff } from 'lucide-react';
 
 export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
@@ -166,22 +165,17 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const formatDate = (d: string) => new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="cashflow" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-        
-        <div className="flex-1 overflow-y-auto p-8">
+    <Layout active="cashflow" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-end mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800">Fluxo de Caixa</h1>
-                        <p className="text-slate-500">Gestão de turno e conferência.</p>
+                        <h1 className="text-2xl md:text-3xl font-black text-slate-800">Fluxo de Caixa</h1>
+                        <p className="text-slate-500 text-sm">Gestão de turno e conferência.</p>
                     </div>
-                    <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                        <button onClick={() => setActiveTab('CURRENT')} className={`px-4 py-2 rounded-lg text-sm font-bold flex gap-2 transition ${activeTab === 'CURRENT' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><Wallet size={16}/> Caixa Atual</button>
-                        <button onClick={() => setActiveTab('HISTORY')} className={`px-4 py-2 rounded-lg text-sm font-bold flex gap-2 transition ${activeTab === 'HISTORY' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><History size={16}/> Histórico</button>
+                    <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200 w-full md:w-auto">
+                        <button onClick={() => setActiveTab('CURRENT')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold flex gap-2 items-center justify-center transition ${activeTab === 'CURRENT' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><Wallet size={16}/> Caixa Atual</button>
+                        <button onClick={() => setActiveTab('HISTORY')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold flex gap-2 items-center justify-center transition ${activeTab === 'HISTORY' ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}><History size={16}/> Histórico</button>
                     </div>
                 </div>
 
@@ -190,20 +184,19 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         
                         {/* HEADER DE STATUS */}
                         {status !== 'CLOSED' && status !== 'FINISHED' && (
-                            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mb-6 flex justify-between items-center">
+                            <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                                 <div>
                                     <span className="text-[10px] font-bold text-slate-400 uppercase">Status</span>
-                                    <h2 className="text-2xl font-black text-green-600 flex items-center gap-2">
+                                    <h2 className="text-xl md:text-2xl font-black text-green-600 flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"/>
                                         {status === 'CONFERENCE' ? 'EM CONFERÊNCIA' : 'ABERTO'}
                                     </h2>
                                 </div>
                                 
-                                {/* Oculta o valor durante a conferência para ser "Cega", mas mostra quando Aberto */}
                                 {status !== 'CONFERENCE' && (
-                                    <div className="text-right">
+                                    <div className="text-left sm:text-right">
                                         <span className="text-[10px] font-bold text-slate-400 uppercase">Total na Gaveta (Sistema)</span>
-                                        <h2 className="text-3xl font-black text-slate-800">{formatMoney(currentExpected)}</h2>
+                                        <h2 className="text-2xl md:text-3xl font-black text-slate-800">{formatMoney(currentExpected)}</h2>
                                     </div>
                                 )}
                             </div>
@@ -225,22 +218,22 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         {/* 2. CAIXA ABERTO */}
                         {status === 'OPEN' && (
                             <div className="space-y-6">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase">Fundo Inicial</p>
-                                        <p className="text-2xl font-black text-slate-700">{formatMoney(openingBalance)}</p>
+                                        <p className="text-xl md:text-2xl font-black text-slate-700">{formatMoney(openingBalance)}</p>
                                     </div>
-                                    <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 shadow-sm">
+                                    <div className="bg-emerald-50 p-4 md:p-5 rounded-2xl border border-emerald-100 shadow-sm">
                                         <p className="text-[10px] font-bold text-emerald-600 uppercase">Vendas (Dinheiro)</p>
-                                        <p className="text-2xl font-black text-emerald-800">+{formatMoney(salesSummary.MONEY)}</p>
+                                        <p className="text-xl md:text-2xl font-black text-emerald-800">+{formatMoney(salesSummary.MONEY)}</p>
                                     </div>
-                                    <button onClick={() => {setModalType('SUPPLY'); setShowSupplyModal(true)}} className="bg-blue-50 hover:bg-blue-100 p-5 rounded-2xl border border-blue-100 transition text-left group">
+                                    <button onClick={() => {setModalType('SUPPLY'); setShowSupplyModal(true)}} className="bg-blue-50 hover:bg-blue-100 p-4 md:p-5 rounded-2xl border border-blue-100 transition text-left group">
                                         <p className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1"><TrendingUp size={12}/> Suprimento</p>
-                                        <p className="text-2xl font-black text-blue-800 group-hover:translate-x-1 transition">Adicionar +</p>
+                                        <p className="text-xl md:text-2xl font-black text-blue-800">Adicionar +</p>
                                     </button>
-                                    <button onClick={() => {setModalType('BLEED'); setShowBleedModal(true)}} className="bg-red-50 hover:bg-red-100 p-5 rounded-2xl border border-red-100 transition text-left group">
+                                    <button onClick={() => {setModalType('BLEED'); setShowBleedModal(true)}} className="bg-red-50 hover:bg-red-100 p-4 md:p-5 rounded-2xl border border-red-100 transition text-left group">
                                         <p className="text-[10px] font-bold text-red-600 uppercase flex items-center gap-1"><TrendingDown size={12}/> Sangria</p>
-                                        <p className="text-2xl font-black text-red-800 group-hover:translate-x-1 transition">Retirar -</p>
+                                        <p className="text-xl md:text-2xl font-black text-red-800">Retirar -</p>
                                     </button>
                                 </div>
 
@@ -274,8 +267,8 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end pt-4">
-                                    <button onClick={() => setStatus('CONFERENCE')} className="bg-slate-900 hover:bg-black text-white px-8 py-4 rounded-xl font-bold shadow-lg flex gap-2 items-center transition transform hover:-translate-y-1">
+                                <div className="flex justify-center md:justify-end pt-4">
+                                    <button onClick={() => setStatus('CONFERENCE')} className="bg-slate-900 hover:bg-black text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-bold shadow-lg flex gap-2 items-center transition w-full md:w-auto justify-center">
                                         <Calculator size={20} /> INICIAR CONFERÊNCIA
                                     </button>
                                 </div>
@@ -324,6 +317,8 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
                 {activeTab === 'HISTORY' && (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden animate-in fade-in">
+                        {/* Desktop table */}
+                        <div className="hidden md:block">
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase">
                                 <tr>
@@ -343,9 +338,7 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                         <td className="p-4 text-sm text-slate-500">{h.operator}</td>
                                         <td className="p-4 text-sm text-slate-500">{formatMoney(Number(h.openingBalance))}</td>
                                         <td className="p-4 text-sm text-emerald-600 font-bold">+{formatMoney(Number(h.revenue))}</td>
-                                        <td className="p-4 text-sm font-bold text-slate-800">
-                                            {formatMoney(Number(h.expected))}
-                                        </td>
+                                        <td className="p-4 text-sm font-bold text-slate-800">{formatMoney(Number(h.expected))}</td>
                                         <td className="p-4 text-sm font-bold text-blue-600">{formatMoney(Number(h.counted))}</td>
                                         <td className="p-4 text-center">
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${Math.abs(Number(h.diff)) < 0.1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -356,11 +349,29 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                 ))}
                             </tbody>
                         </table>
+                        </div>
+                        
+                        {/* Mobile cards */}
+                        <div className="md:hidden divide-y divide-slate-100">
+                            {historyLog.map((h: any) => (
+                                <div key={h.id} className="p-4 space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-bold text-slate-700">{formatDate(h.date)}</span>
+                                        <span className={`px-2 py-1 rounded text-xs font-bold ${Math.abs(Number(h.diff)) < 0.1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {formatMoney(Number(h.diff))}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-slate-500">
+                                        <span>{h.operator}</span>
+                                        <span>Contado: <span className="font-bold text-blue-600">{formatMoney(Number(h.counted))}</span></span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                         {historyLog.length === 0 && <p className="text-center p-8 text-slate-400 text-sm">Sem histórico.</p>}
                     </div>
                 )}
             </div>
-        </div>
 
         {/* MODAL SANGRIA/SUPRIMENTO */}
         {(showBleedModal || showSupplyModal) && (
@@ -409,7 +420,6 @@ export const CashFlow = ({ onNavigate, onLogout, user, storeName, setUser }: any
             </div>
         )}
 
-      </main>
-    </div>
+    </Layout>
   );
 };

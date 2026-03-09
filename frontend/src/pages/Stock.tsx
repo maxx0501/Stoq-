@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
-import { Package, Search, ArrowDownCircle, ArrowUpCircle, AlertTriangle, CheckCircle, TrendingUp, ChevronLeft, ChevronRight, History, Calendar, Trash2 } from 'lucide-react';
+import { Layout } from '../components/Layout';
+import { Package, Search, ArrowDownCircle, ArrowUpCircle, AlertTriangle, CheckCircle, TrendingUp, ChevronLeft, ChevronRight, History, Calendar, Trash2, X } from 'lucide-react';
 
 export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   const [products, setProducts] = useState<any[]>([]);
@@ -102,14 +101,8 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="stock" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8 relative">
-            <div className="max-w-[1600px] mx-auto space-y-8">
+    <Layout active="stock" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
                 
                 {/* Cabeçalho */}
                 <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -119,46 +112,46 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">Gerencie entradas e perdas de mercadoria.</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         {/* Botão de Perda */}
                         <button 
                             onClick={() => openModal('LOSS')}
-                            className="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-sm transition"
+                            className="flex-1 sm:flex-none bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 md:px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition"
                         >
-                            <Trash2 size={20} /> Registrar Perda
+                            <Trash2 size={20} /> <span className="hidden sm:inline">Registrar</span> Perda
                         </button>
                         {/* Botão de Entrada */}
                         <button 
                             onClick={() => openModal('ENTRY')}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/30 transition transform hover:-translate-y-1"
+                            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 md:px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 transition"
                         >
-                            <ArrowDownCircle size={20} /> Receber Mercadoria
+                            <ArrowDownCircle size={20} /> <span className="hidden sm:inline">Receber</span> Mercadoria
                         </button>
                     </div>
                 </div>
 
                 {/* KPIs (Iguais ao anterior) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
                         <p className="text-xs font-bold text-slate-400 uppercase">Valor em Estoque (Custo)</p>
-                        <h3 className="text-2xl font-black text-slate-800 mt-1">
+                        <h3 className="text-xl md:text-2xl font-black text-slate-800 mt-1">
                             {formatMoney(products.reduce((acc, p) => acc + (Number(p.costPrice||0) * Number(p.stock)), 0))}
                         </h3>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
                         <p className="text-xs font-bold text-slate-400 uppercase">Itens com Estoque Baixo</p>
-                        <h3 className="text-2xl font-black text-slate-800 mt-1">{products.filter(p => p.stock <= (p.minStock || 5)).length} produtos</h3>
+                        <h3 className="text-xl md:text-2xl font-black text-slate-800 mt-1">{products.filter(p => p.stock <= (p.minStock || 5)).length} produtos</h3>
                     </div>
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
                         <p className="text-xs font-bold text-slate-400 uppercase">Total de SKUs</p>
-                        <h3 className="text-2xl font-black text-slate-800 mt-1">{products.length} itens</h3>
+                        <h3 className="text-xl md:text-2xl font-black text-slate-800 mt-1">{products.length} itens</h3>
                     </div>
                 </div>
 
                 {/* Tabela Estoque Atual */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                        <div className="flex items-center gap-3 bg-white border border-slate-200 px-3 py-2 rounded-lg w-full max-w-md">
+                    <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/50">
+                        <div className="flex items-center gap-3 bg-white border border-slate-200 px-3 py-2 rounded-lg w-full sm:max-w-md">
                             <Search className="text-slate-400" size={18} />
                             <input className="bg-transparent outline-none text-sm flex-1 font-medium" placeholder="Buscar produto..." value={searchTerm} onChange={e => {setSearchTerm(e.target.value); setCurrentPage(1);}} />
                         </div>
@@ -168,6 +161,8 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                             <button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)} className="p-2 rounded-lg hover:bg-slate-200 disabled:opacity-30 transition"><ChevronRight size={16}/></button>
                         </div>
                     </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             <tr>
@@ -193,12 +188,34 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                             ))}
                         </tbody>
                     </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {currentProducts.map(p => (
+                            <div key={p.id} className="p-4 flex justify-between items-center">
+                                <div className="flex-1">
+                                    <p className="font-bold text-slate-700 text-sm">{p.name}</p>
+                                    <p className="text-xs text-slate-500">{formatMoney(Number(p.costPrice || 0))}</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {p.stock <= (p.minStock || 5) ? 
+                                        <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-bold">Baixo</span> : 
+                                        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold">Ok</span>
+                                    }
+                                    <span className="font-black text-slate-800 text-sm">{p.stock}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Tabela Histórico (Com Tipo e Motivo) */}
                 <div className="space-y-4">
                     <h3 className="font-bold text-slate-700 flex items-center gap-2 text-lg"><History className="text-slate-400"/> Histórico de Movimentações</h3>
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        {/* Desktop table */}
+                        <div className="hidden md:block">
                         <table className="w-full text-left">
                             <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                 <tr>
@@ -234,6 +251,29 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                                 })}
                             </tbody>
                         </table>
+                        </div>
+
+                        {/* Mobile cards */}
+                        <div className="md:hidden divide-y divide-slate-100">
+                            {currentHistory.map((entry: any) => {
+                                const isLoss = entry.entryType === 'LOSS';
+                                return (
+                                    <div key={entry.id} className="p-4 space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-slate-700 text-sm">{entry.product?.name || 'Item excluído'}</span>
+                                            {isLoss ? 
+                                                <span className="text-red-600 bg-red-50 px-2 py-0.5 rounded text-[10px] font-bold">Saída</span> :
+                                                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold">Entrada</span>
+                                            }
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-slate-500">
+                                            <span>{new Date(entry.createdAt).toLocaleDateString('pt-BR')}</span>
+                                            <span className="font-bold text-slate-800">{isLoss ? '-' : '+'}{entry.quantity}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                         {/* Paginação Histórico */}
                         {totalHistPages > 1 && (
                             <div className="p-3 border-t border-slate-100 bg-slate-50 flex justify-center gap-2">
@@ -246,15 +286,17 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                 </div>
 
             </div>
-        </div>
 
         {/* --- MODAL DE MOVIMENTAÇÃO (Adapta para Entrada ou Saída) --- */}
         {isModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-center justify-center p-4 animate-in zoom-in duration-200">
-                <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8">
-                    <h2 className={`text-xl font-black mb-6 flex items-center gap-2 ${modalType === 'ENTRY' ? 'text-slate-800' : 'text-red-600'}`}>
-                        {modalType === 'ENTRY' ? <><ArrowDownCircle className="text-emerald-600" /> Nova Entrada</> : <><Trash2 /> Registrar Perda</>}
-                    </h2>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+                <div className="bg-white w-full max-w-lg rounded-t-3xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className={`text-xl font-black flex items-center gap-2 ${modalType === 'ENTRY' ? 'text-slate-800' : 'text-red-600'}`}>
+                            {modalType === 'ENTRY' ? <><ArrowDownCircle className="text-emerald-600" /> Nova Entrada</> : <><Trash2 /> Registrar Perda</>}
+                        </h2>
+                        <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition"><X size={20} className="text-slate-400"/></button>
+                    </div>
                     
                     <form onSubmit={handlePreSubmit} className="space-y-5">
                         <div>
@@ -342,7 +384,6 @@ export const Stock = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
             </div>
         )}
 
-      </main>
-    </div>
+    </Layout>
   );
 };

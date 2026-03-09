@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { LayoutDashboard, TrendingUp, Users, Store, Trash2, Search, Crown, ShieldAlert } from 'lucide-react';
 
 export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
@@ -51,14 +50,8 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
   ) || [];
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="admin" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-[1600px] mx-auto space-y-8">
+    <Layout active="admin" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
                 
                 {/* Header Admin */}
                 <div className="flex items-center gap-3 mb-8">
@@ -72,43 +65,43 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
                 </div>
 
                 {/* KPIs de Negócio */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-28 md:h-32">
                         <div className="flex justify-between items-start">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Faturamento (MRR)</p>
-                            <TrendingUp size={18} className="text-emerald-500"/>
+                            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Faturamento (MRR)</p>
+                            <TrendingUp size={18} className="text-emerald-500 hidden sm:block"/>
                         </div>
-                        <h3 className="text-3xl font-black text-slate-800">{formatMoney(data?.metrics.mrr || 0)}<span className="text-sm text-slate-400 font-medium">/mês</span></h3>
+                        <h3 className="text-xl md:text-3xl font-black text-slate-800">{formatMoney(data?.metrics.mrr || 0)}<span className="text-[10px] md:text-sm text-slate-400 font-medium">/mês</span></h3>
                     </div>
                     
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-28 md:h-32">
                         <div className="flex justify-between items-start">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total de Lojas</p>
-                            <Store size={18} className="text-blue-500"/>
+                            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Total de Lojas</p>
+                            <Store size={18} className="text-blue-500 hidden sm:block"/>
                         </div>
-                        <h3 className="text-3xl font-black text-slate-800">{data?.metrics.totalStores || 0}</h3>
+                        <h3 className="text-xl md:text-3xl font-black text-slate-800">{data?.metrics.totalStores || 0}</h3>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-28 md:h-32">
                         <div className="flex justify-between items-start">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assinantes PRO</p>
-                            <Crown size={18} className="text-yellow-500 fill-yellow-500"/>
+                            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Assinantes PRO</p>
+                            <Crown size={18} className="text-yellow-500 fill-yellow-500 hidden sm:block"/>
                         </div>
-                        <h3 className="text-3xl font-black text-slate-800">{data?.metrics.proCount || 0}</h3>
+                        <h3 className="text-xl md:text-3xl font-black text-slate-800">{data?.metrics.proCount || 0}</h3>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-28 md:h-32">
                         <div className="flex justify-between items-start">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Usuários Totais</p>
-                            <Users size={18} className="text-slate-400"/>
+                            <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Usuários Totais</p>
+                            <Users size={18} className="text-slate-400 hidden sm:block"/>
                         </div>
-                        <h3 className="text-3xl font-black text-slate-800">{data?.metrics.totalUsers || 0}</h3>
+                        <h3 className="text-xl md:text-3xl font-black text-slate-800">{data?.metrics.totalUsers || 0}</h3>
                     </div>
                 </div>
 
                 {/* Lista de Lojas */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                    <div className="p-4 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50/50">
                         <h3 className="font-bold text-slate-800 flex items-center gap-2">
                             <LayoutDashboard size={18} className="text-slate-400"/> Lojas Registradas
                         </h3>
@@ -130,7 +123,7 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
                             <p className="text-lg">Nenhuma loja encontrada</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 md:p-6">
                             {filteredStores.map((store: any) => (
                                 <div key={store.id} className="bg-white border border-slate-100 rounded-xl p-5 hover:shadow-md transition group">
                                     <div className="flex justify-between items-start mb-4">
@@ -193,8 +186,6 @@ export const SuperAdmin = ({ onNavigate, onLogout, user, storeName, setUser }: a
                 </div>
 
             </div>
-        </div>
-      </main>
-    </div>
+    </Layout>
   );
 };

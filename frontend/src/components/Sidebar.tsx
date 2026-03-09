@@ -13,17 +13,20 @@ import {
   UserCog,      
   TrendingDown,
   Sparkles,
-  Clock // Importado para o ícone de relógio
+  Clock,
+  X
 } from 'lucide-react';
 
 interface SidebarProps {
   active: 'dashboard' | 'products' | 'sales' | 'customers' | 'team' | 'stock' | 'reports' | 'settings' | 'subscription' | 'admin' | 'cashflow' | 'expenses';
   onNavigate: (page: any) => void;
   onLogout: () => void;
-  user?: any; 
+  user?: any;
+  isMobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export const Sidebar = ({ active, onNavigate, onLogout, user }: SidebarProps) => {
+export const Sidebar = ({ active, onNavigate, onLogout, user, isMobileOpen, onMobileClose }: SidebarProps) => {
   
   // Verifica se é vendedor para esconder coisas
   const isSeller = user?.role === 'SELLER';
@@ -65,14 +68,25 @@ export const Sidebar = ({ active, onNavigate, onLogout, user }: SidebarProps) =>
   };
 
   return (
-    <aside className="w-64 bg-[#0f172a] hidden md:flex flex-col justify-between p-6 text-white shrink-0 transition-all duration-300">
+    <aside className={`
+      w-64 bg-[#0f172a] flex-col justify-between p-6 text-white shrink-0 transition-all duration-300
+      hidden md:flex
+      ${isMobileOpen ? '!flex fixed inset-y-0 left-0 z-50 shadow-2xl' : ''}
+    `}>
       <div>
-        <div className="flex items-center gap-3 px-2 mb-10">
-          <img src="/logo.png" alt="Stoq+" className="w-10 h-10 object-contain" />
-          <div>
-            <h1 className="text-lg font-bold leading-none italic">Stoq+</h1>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wide">GESTÃO INTELIGENTE</p>
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3 px-2">
+            <img src="/logo.png" alt="Stoq+" className="w-10 h-10 object-contain" />
+            <div>
+              <h1 className="text-lg font-bold leading-none italic">Stoq+</h1>
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide">GESTÃO INTELIGENTE</p>
+            </div>
           </div>
+          {isMobileOpen && (
+            <button onClick={onMobileClose} className="md:hidden p-2 text-slate-400 hover:text-white transition rounded-lg hover:bg-slate-800">
+              <X size={20} />
+            </button>
+          )}
         </div>
         
         <nav className="space-y-2">

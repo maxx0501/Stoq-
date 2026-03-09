@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 import { Package, Plus, Search, Image as ImageIcon, AlertCircle, EyeOff, X, Edit, Trash2, Upload, Download, Filter, Tag, ChevronLeft, ChevronRight, CheckCircle, AlertOctagon, FileSpreadsheet, Loader2 } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import * as XLSX from 'xlsx';
 
 export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
@@ -343,39 +342,33 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="products" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8 relative">
+    <Layout active="products" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
             <div className="max-w-[1600px] mx-auto">
                 
                 {/* Header Página */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                        <h1 className="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-2">
                             <Package className="text-blue-600" /> Catálogo de Produtos
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">Gerencie seu inventário completo.</p>
                     </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button onClick={handleDownloadTemplate} className="bg-white text-slate-700 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition border border-slate-200 flex items-center gap-2 text-sm">
+                  <div className="flex flex-wrap gap-2 md:gap-3">
+                    <button onClick={handleDownloadTemplate} className="hidden md:flex bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition border border-slate-200 items-center gap-2 text-sm">
                       <Download size={16} /> Modelo Excel
                     </button>
-                    <button onClick={() => importInputRef.current?.click()} className="bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-sm">
-                      <FileSpreadsheet size={16} /> Importar Excel
+                    <button onClick={() => importInputRef.current?.click()} className="hidden md:flex bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 items-center gap-2 text-sm">
+                      <FileSpreadsheet size={16} /> Importar
                     </button>
                     <input type="file" ref={importInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx,.xls,.csv" />
-                    <button onClick={openNewProductModal} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 flex items-center gap-2 text-sm">
+                    <button onClick={openNewProductModal} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 flex items-center gap-2 text-sm">
                       <Plus size={18} /> Novo Produto
                     </button>
                   </div>
                 </div>
 
                 {/* Filtros */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-8 space-y-4">
+                <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 md:mb-8 space-y-3 md:space-y-4">
                     <div className="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 focus-within:border-blue-400 transition">
                         <Search className="text-slate-400" />
                         <input className="flex-1 bg-transparent outline-none text-slate-700 font-medium" 
@@ -393,12 +386,12 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                 </div>
 
                 {/* GRID DE CARDS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6 mb-6 md:mb-8">
                     {currentItems.map((product) => {
                         const isLowStock = (product.stock || 0) <= (product.minStock || 0);
                         return (
                         <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col relative">
-                            <div className="h-48 w-full bg-slate-100 relative overflow-hidden">
+                            <div className="h-32 md:h-48 w-full bg-slate-100 relative overflow-hidden">
                                 {product.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50"><ImageIcon size={48} /></div>}
                                 <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                                     <div className="flex flex-col gap-1">
@@ -407,18 +400,18 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-5 flex-1 flex flex-col">
+                            <div className="p-3 md:p-5 flex-1 flex flex-col">
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded-md flex items-center gap-1"><Tag size={10} /> {product.category || 'Geral'}</span>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => handleEditClick(product)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit size={16} /></button>
                                         <button onClick={() => handleDeleteClick(product.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 size={16} /></button>
                                     </div>
                                 </div>
                                 <h3 className="font-bold text-slate-800 mb-1 leading-tight text-sm line-clamp-1">{product.name}</h3>
-                                <p className="text-xs text-slate-500 line-clamp-2 mb-4 flex-1 h-8">{product.description || 'Sem descrição.'}</p>
-                                <div className="border-t border-slate-50 pt-4 flex items-end justify-between">
-                                    <div><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Preço</p><p className="text-lg font-black text-slate-900">R$ {Number(product.price || 0).toFixed(2)}</p></div>
+                                <p className="text-xs text-slate-500 line-clamp-2 mb-3 md:mb-4 flex-1 h-8 hidden md:block">{product.description || 'Sem descrição.'}</p>
+                                <div className="border-t border-slate-50 pt-3 md:pt-4 flex items-end justify-between">
+                                    <div><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Preço</p><p className="text-base md:text-lg font-black text-slate-900">R$ {Number(product.price || 0).toFixed(2)}</p></div>
                                     <div className="text-right"><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Estoque</p><div className={`font-bold text-sm px-2 py-0.5 rounded-lg ${isLowStock ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{product.stock || 0} un</div></div>
                                 </div>
                             </div>
@@ -437,17 +430,16 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                 )}
 
             </div>
-        </div>
 
         {/* --- MODAL CADASTRO (Mantido) --- */}
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50] flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
-              <div className="bg-slate-50 px-8 py-6 border-b border-slate-100 flex justify-between items-center sticky top-0 z-10">
-                <h2 className="text-xl font-black text-slate-800">{isEditing ? 'Editar Produto' : 'Cadastrar Novo Item'}</h2>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50] flex items-end md:items-center justify-center md:p-4">
+            <div className="bg-white w-full md:max-w-3xl rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] md:max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom md:fade-in md:zoom-in duration-200">
+              <div className="bg-slate-50 px-5 md:px-8 py-4 md:py-6 border-b border-slate-100 flex justify-between items-center sticky top-0 z-10">
+                <h2 className="text-lg md:text-xl font-black text-slate-800">{isEditing ? 'Editar Produto' : 'Cadastrar Novo Item'}</h2>
                 <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition"><X size={20} className="text-slate-500"/></button>
               </div>
-              <form onSubmit={handleSave} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <form onSubmit={handleSave} className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-6">
                   <div>
                     <label className="text-xs font-bold text-slate-500 mb-2 block">FOTO</label>
@@ -569,8 +561,6 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
             </div>
         )}
 
-      </main>
-      <style>{`.input-padrao { width: 100%; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem 1rem; outline: none; transition: all 0.2s; font-weight: 500; color: #334155; } .input-padrao:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); background-color: #fff; } .scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
-    </div>
+      </Layout>
   );
 };

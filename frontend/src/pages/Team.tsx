@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { Users, UserPlus, ShieldCheck, Trash2, Edit, CheckCircle, XCircle, BarChart3, Activity, ShoppingBag, Package, Lock, Eye, EyeOff, AlertTriangle, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -204,14 +203,8 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
   };
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="team" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8 relative">
-            <div className="max-w-[1600px] mx-auto space-y-8">
+    <Layout active="team" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
                 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-end gap-6">
@@ -221,23 +214,23 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">Gerencie permissões, adicione gestores e acompanhe desempenho.</p>
                     </div>
-                    <div className="flex gap-3">
-                        <button onClick={() => openCreateModal('MANAGER')} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-purple-500/30 transition transform hover:-translate-y-1">
-                            <ShieldCheck size={20} /> Novo Gestor
+                    <div className="flex flex-wrap gap-3">
+                        <button onClick={() => openCreateModal('MANAGER')} className="flex-1 sm:flex-none bg-purple-600 hover:bg-purple-700 text-white px-4 md:px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30 transition">
+                            <ShieldCheck size={20} /> <span className="hidden sm:inline">Novo</span> Gestor
                         </button>
-                        <button onClick={() => openCreateModal('SELLER')} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-1">
-                            <UserPlus size={20} /> Novo Vendedor
+                        <button onClick={() => openCreateModal('SELLER')} className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 transition">
+                            <UserPlus size={20} /> <span className="hidden sm:inline">Novo</span> Vendedor
                         </button>
                     </div>
                 </div>
 
                 {/* Gráfico e Log */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                             <BarChart3 size={18} className="text-blue-500"/> Ranking de Vendas
                         </h3>
-                        <div className="h-64 w-full">
+                        <div className="h-48 md:h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={analytics.ranking} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                                     <XAxis type="number" hide />
@@ -278,6 +271,8 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
 
                 {/* Tabela */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    {/* Desktop table */}
+                    <div className="hidden md:block">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase">
                             <tr><th className="px-6 py-4">Nome</th><th className="px-6 py-4">Cargo</th><th className="px-6 py-4 text-center">Vende?</th><th className="px-6 py-4 text-center">Estoque?</th><th className="px-6 py-4 text-right">Ações</th></tr>
@@ -300,15 +295,44 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
                             ))}
                         </tbody>
                     </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {team.map((member) => (
+                            <div key={member.id} className="p-4 space-y-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="font-bold text-slate-700">{member.name}</p>
+                                        <p className="text-xs text-slate-400">{member.email}</p>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded text-[10px] font-bold ${member.role === 'MANAGER' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{member.role === 'MANAGER' ? 'GESTOR' : 'VENDEDOR'}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex gap-3 text-xs text-slate-500">
+                                        <span className="flex items-center gap-1">{member.canSell ? <CheckCircle size={12} className="text-emerald-500"/> : <XCircle size={12} className="text-slate-300"/>} Vende</span>
+                                        <span className="flex items-center gap-1">{member.canManageProducts ? <CheckCircle size={12} className="text-emerald-500"/> : <XCircle size={12} className="text-slate-300"/>} Estoque</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => handleResetPassword(member.id, member.name)} className="p-2 text-slate-400 hover:text-amber-600 rounded-lg"><Lock size={14}/></button>
+                                        <button onClick={() => openEditModal(member)} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><Edit size={14}/></button>
+                                        <button onClick={() => handleDelete(member.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={14}/></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
 
         {/* --- MODAL FORM --- */}
         {isModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-center justify-center p-4 animate-in zoom-in duration-200">
-                <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8">
-                    <h2 className="text-xl font-black text-slate-800 mb-6">{isEditMode ? 'Editar Permissões' : (form.role === 'MANAGER' ? 'Novo Gestor' : 'Novo Vendedor')}</h2>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+                <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-black text-slate-800">{isEditMode ? 'Editar Permissões' : (form.role === 'MANAGER' ? 'Novo Gestor' : 'Novo Vendedor')}</h2>
+                        <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition"><X size={20} className="text-slate-400"/></button>
+                    </div>
                     <form onSubmit={handleSave} className="space-y-4">
                         {!isEditMode && (
                             <>
@@ -342,9 +366,12 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
 
         {/* --- MODAL RESET PASSWORD CONFIRM --- */}
         {isPasswordModalOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in zoom-in duration-300">
-                <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8">
-                    <h2 className="text-xl font-black text-slate-800 mb-2">Redefinir Senha</h2>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+                <div className="bg-white w-full max-w-md rounded-t-3xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-start mb-2">
+                        <h2 className="text-xl font-black text-slate-800">Redefinir Senha</h2>
+                        <button onClick={() => setIsPasswordModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition"><X size={20} className="text-slate-400"/></button>
+                    </div>
                     <p className="text-sm text-slate-500 mb-6">{passwordModalUserName}</p>
                     <div className="space-y-4">
                         <div>
@@ -434,7 +461,6 @@ export const Team = ({ onNavigate, onLogout, user, storeName, setUser }: any) =>
             </div>
         )}
 
-      </main>
-    </div>
+    </Layout>
   );
 };

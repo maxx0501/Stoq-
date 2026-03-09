@@ -1,7 +1,6 @@
 import { useState } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { 
   Check, ShieldCheck, Calendar, CreditCard, Lock, Loader2, Rocket, Star, Gift, Shield
 } from 'lucide-react';
@@ -87,35 +86,29 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
   };
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="subscription" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8 relative">
+    <Layout active="subscription" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
             
             {/* Background decorativo (Igual da Home) */}
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-purple-600 rounded-full blur-[120px] opacity-10 pointer-events-none"></div>
 
-            <div className="max-w-5xl mx-auto space-y-12 relative z-10">
+            <div className="max-w-5xl mx-auto space-y-8 md:space-y-12 relative z-10">
                 
                 {/* Header da Página */}
-                <div className="text-center space-y-4 pt-8 mb-12">
+                <div className="text-center space-y-4 pt-4 md:pt-8 mb-8 md:mb-12">
                     <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider mb-2">
                         <Rocket size={14} /> Comece Agora
                     </span>
-                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+                    <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight">
                         Experimente Stoq+ <br/> por 1 mês completamente grátis.
                     </h1>
-                    <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+                    <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto">
                         Teste todas as funcionalidades premium sem custo. Comece agora e aproveite 30 dias de acesso completo.
                     </p>
                 </div>
 
                 {/* INFORMAÇÕES DO PLANO */}
-                <div className="max-w-2xl mx-auto bg-blue-50 border-l-4 border-blue-600 p-6 rounded-lg space-y-4">
+                <div className="max-w-2xl mx-auto bg-blue-50 border-l-4 border-blue-600 p-4 md:p-6 rounded-lg space-y-4">
                     <div className="flex gap-3">
                         <Shield size={20} className="text-blue-600 shrink-0 mt-0.5" />
                         <div>
@@ -162,10 +155,10 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
                 </div>
 
                 {/* GRID DE PLANOS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
                 
                     {/* PLANO MENSAL */}
-                    <div className="bg-white rounded-[2rem] p-8 flex flex-col hover:scale-[1.02] transition-transform duration-300 border border-slate-100 shadow-xl shadow-slate-200/50">
+                    <div className="bg-white rounded-[2rem] p-6 md:p-8 flex flex-col hover:scale-[1.02] transition-transform duration-300 border border-slate-100 shadow-xl shadow-slate-200/50">
                         <div className="flex items-center gap-3 mb-4">
                             <div className="p-3 bg-slate-100 rounded-xl text-slate-600"><Calendar size={24}/></div>
                             <h3 className="text-xl font-bold text-slate-800">Plano Mensal</h3>
@@ -197,7 +190,7 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
                     </div>
 
                     {/* PLANO ANUAL (Super Oferta) */}
-                    <div className="bg-white rounded-[2rem] p-8 flex flex-col relative border-4 border-blue-600 hover:scale-[1.02] transition-transform duration-300 shadow-2xl shadow-blue-900/20">
+                    <div className="bg-white rounded-[2rem] p-6 md:p-8 flex flex-col relative border-4 border-blue-600 hover:scale-[1.02] transition-transform duration-300 shadow-2xl shadow-blue-900/20">
                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg whitespace-nowrap flex items-center gap-1">
                              <Star size={12} className="fill-white"/> Melhor Custo-Benefício
                         </div>
@@ -255,8 +248,6 @@ export const Subscription = ({ onNavigate, onLogout, user, storeName, setUser }:
                 </div>
 
             </div>
-        </div>
-      </main>
-    </div>
+    </Layout>
   );
 };

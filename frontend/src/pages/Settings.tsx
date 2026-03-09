@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { Store, Shield, Save, CheckCircle, Trash2, AlertTriangle, X, Loader2, Check, CreditCard } from 'lucide-react';
 
 export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
@@ -187,14 +186,8 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
   };
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="settings" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-[1000px] mx-auto space-y-8">
+    <Layout active="settings" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1000px] mx-auto space-y-6 md:space-y-8">
                 
                 <div>
                     <h1 className="text-2xl font-black text-slate-800">Configurações</h1>
@@ -203,16 +196,16 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
                 <div className="flex flex-col md:flex-row gap-8 items-start">
                     
-                    {/* MENU LATERAL */}
+                    {/* MENU LATERAL / HORIZONTAL TABS ON MOBILE */}
                     <div className="w-full md:w-64 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden shrink-0">
-                        <div className="p-2 space-y-1">
-                            <button onClick={() => setActiveTab('store')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'store' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
-                                <Store size={18} /> Dados da Loja
+                        <div className="p-2 flex md:flex-col gap-1 overflow-x-auto">
+                            <button onClick={() => setActiveTab('store')} className={`flex-1 md:flex-none whitespace-nowrap flex items-center justify-center md:justify-start gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'store' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                                <Store size={18} /> <span className="hidden sm:inline">Dados da Loja</span><span className="sm:hidden">Loja</span>
                             </button>
-                            <button onClick={() => setActiveTab('subscription')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'subscription' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            <button onClick={() => setActiveTab('subscription')} className={`flex-1 md:flex-none whitespace-nowrap flex items-center justify-center md:justify-start gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'subscription' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
                                 <CreditCard size={18} /> Assinatura
                             </button>
-                            <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'security' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
+                            <button onClick={() => setActiveTab('security')} className={`flex-1 md:flex-none whitespace-nowrap flex items-center justify-center md:justify-start gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'security' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}>
                                 <Shield size={18} /> Segurança
                             </button>
                         </div>
@@ -223,7 +216,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         
                         {/* ABA: LOJA */}
                         {activeTab === 'store' && (
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 <h2 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><Store className="text-blue-500" size={20}/> Informações da Loja</h2>
                                 <form onSubmit={handleSaveStore} className="space-y-5">
                                     <div>
@@ -244,7 +237,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
 
                         {/* ABA: ASSINATURA */}
                         {activeTab === 'subscription' && (
-                            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 <h2 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><CreditCard className="text-blue-500" size={20}/> Seu Plano</h2>
                                 
                                 <div className={`border rounded-xl p-6 mb-8 ${
@@ -310,7 +303,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         {/* ABA: SEGURANÇA */}
                         {activeTab === 'security' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100">
                                     <h2 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2"><Shield className="text-blue-500" size={20}/> Alterar Senha</h2>
                                     <form onSubmit={handleSaveSecurity} className="space-y-5 max-w-md">
                                         
@@ -373,7 +366,7 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                 </div>
 
                                 {/* ZONA DE PERIGO */}
-                                <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-100">
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-red-100">
                                     <h2 className="text-lg font-black text-red-600 mb-6 flex items-center gap-2"><AlertTriangle size={20}/> Zona de Perigo</h2>
                                     <div className="bg-red-50 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                                         <div>
@@ -390,7 +383,6 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
                     </div>
                 </div>
             </div>
-        </div>
 
         {/* --- MODAIS DE CONFIRMAÇÃO --- */}
         {showDeleteConfirmModal && (
@@ -463,7 +455,6 @@ export const Settings = ({ onNavigate, onLogout, user, storeName, setUser }: any
             </div>
         )}
 
-      </main>
-    </div>
+    </Layout>
   );
 };

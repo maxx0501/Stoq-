@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { Users, Search, Plus, Trash2, Edit, Phone, User, CheckCircle, FileText, CalendarClock, DollarSign, ChevronRight, X, Printer, Loader2, AlertCircle } from 'lucide-react';
 import { printReceipt } from '../utils/printReceipt';
 
@@ -178,14 +177,8 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
   const filteredHistory = historyTab === 'ALL' ? selectedCustomerHistory : selectedCustomerHistory.filter(s => s.paymentMethod === 'CREDIT_STORE' && s.status === 'PENDING');
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="customers" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8 relative">
-            <div className="max-w-[1400px] mx-auto space-y-10">
+    <Layout active="customers" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-10">
                 
                 {/* --- SEÇÃO 1: GESTÃO DE CLIENTES --- */}
                 <div className="space-y-6">
@@ -243,9 +236,9 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
 
                 {/* --- SEÇÃO 2: TABELA GERAL DE VENDAS A CRÉDITO --- */}
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-8 border-b border-slate-100 bg-purple-50/30 flex justify-between items-center">
+                    <div className="p-4 md:p-8 border-b border-slate-100 bg-purple-50/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                            <h2 className="text-lg md:text-xl font-black text-slate-800 flex items-center gap-2">
                                 <CalendarClock className="text-purple-600" /> Controle de Vendas a Crédito
                             </h2>
                             <p className="text-slate-500 text-sm mt-1">Todas as contas pendentes da loja.</p>
@@ -256,6 +249,8 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
                         </div>
                     </div>
 
+                    {/* Desktop table */}
+                    <div className="hidden md:block">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-xs font-bold text-slate-400 uppercase">
                             <tr>
@@ -297,16 +292,46 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
                             )}
                         </tbody>
                     </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-slate-100">
+                        {debts.length === 0 ? (
+                            <p className="p-8 text-center text-slate-400">Nenhuma dívida pendente! 🎉</p>
+                        ) : (
+                            debts.map(debt => {
+                                const isLate = new Date() > new Date(debt.dueDate);
+                                return (
+                                    <div key={debt.id} className="p-4 space-y-2 active:bg-purple-50/30 cursor-pointer" onClick={() => handleOpenPay(debt)}>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-slate-700 text-sm">{debt.customer?.name}</span>
+                                            {isLate ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-[10px] font-bold uppercase"><AlertCircle size={10}/> Atrasado</span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase"><CalendarClock size={10}/> No Prazo</span>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="text-slate-500">{debt.dueDate ? formatDate(debt.dueDate) : '-'}</span>
+                                            <span className="font-black text-slate-800">{formatMoney(Number(debt.total))}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
 
             </div>
-        </div>
 
         {/* --- MODAL 1: FORMULÁRIO DE CLIENTE (Email e Endereço Opcionais) --- */}
         {isFormOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
-                <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8">
-                    <h2 className="text-xl font-black text-slate-800 mb-6">{isEditMode ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+                <div className="bg-white w-full max-w-lg rounded-t-3xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-black text-slate-800">{isEditMode ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+                        <button onClick={() => setIsFormOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition"><X size={20} className="text-slate-400"/></button>
+                    </div>
                     <form onSubmit={handleSaveCustomer} className="space-y-4">
                         <div>
                             <label className="text-xs font-bold text-slate-400 uppercase ml-1">Nome Completo *</label>
@@ -347,8 +372,8 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
 
         {/* --- MODAL 2: HISTÓRICO DO CLIENTE (Com botão de fechar) --- */}
         {isHistoryOpen && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200">
-                <div className="bg-white w-full max-w-2xl h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+                <div className="bg-white w-full max-w-2xl h-[85vh] md:h-[80vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden relative">
                     
                     {/* Header do Histórico */}
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -456,17 +481,6 @@ export const Customers = ({ onNavigate, onLogout, user, storeName, setUser }: an
             </div>
         )}
 
-        {/* CSS GLOBAL PARA INPUTS */}
-        <style>{`
-            .input-padrao { width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 0.75rem; outline: none; font-weight: 500; color: #334155; transition: 0.2s; }
-            .input-padrao:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
-            .btn-primary { flex: 1; padding: 0.75rem; background: #2563eb; color: white; font-weight: bold; border-radius: 0.75rem; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
-            .btn-primary:hover { background: #1d4ed8; }
-            .btn-secondary { flex: 1; padding: 0.75rem; font-weight: bold; color: #64748b; border-radius: 0.75rem; transition: 0.2s; background: #f1f5f9; }
-            .btn-secondary:hover { background: #e2e8f0; }
-        `}</style>
-
-      </main>
-    </div>
+    </Layout>
   );
 };

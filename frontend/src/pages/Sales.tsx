@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, X, DollarSign, TrendingUp, Calendar, ArrowRight, CheckCircle, CalendarClock, User, CreditCard, Banknote, QrCode } from 'lucide-react';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
 
@@ -170,41 +169,35 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
   const formatMoney = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="sales" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-[1600px] mx-auto space-y-8">
+    <Layout active="sales" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
                 
                 {/* CABEÇALHO */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800">Minhas Vendas</h1>
+                        <h1 className="text-xl md:text-2xl font-black text-slate-800">Minhas Vendas</h1>
                         <p className="text-slate-500 text-sm">Escolha o tipo de operação abaixo.</p>
                     </div>
-                    <div className="flex gap-4">
-                        <button onClick={() => handleOpenPos('STANDARD')} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-blue-500/30 flex items-center gap-3 transition transform hover:scale-105">
-                            <ShoppingCart size={24} /> REALIZAR VENDA
+                    <div className="flex gap-2 md:gap-4 w-full md:w-auto">
+                        <button onClick={() => handleOpenPos('STANDARD')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-xl shadow-blue-500/30 flex items-center gap-2 md:gap-3 transition flex-1 md:flex-none justify-center">
+                            <ShoppingCart size={20} /> <span className="hidden sm:inline">REALIZAR</span> VENDA
                         </button>
-                        <button onClick={() => handleOpenPos('CREDIT')} className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-purple-500/30 flex items-center gap-3 transition transform hover:scale-105">
-                            <CalendarClock size={24} /> VENDA C/ CRÉDITO
+                        <button onClick={() => handleOpenPos('CREDIT')} className="bg-purple-600 hover:bg-purple-700 text-white px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-lg shadow-xl shadow-purple-500/30 flex items-center gap-2 md:gap-3 transition flex-1 md:flex-none justify-center">
+                            <CalendarClock size={20} /> CRÉDITO
                         </button>
                     </div>
                 </div>
 
                 {/* ESTATÍSTICAS */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
                         <div>
                             <p className="text-xs font-bold text-slate-400 uppercase mb-1">Você vendeu hoje</p>
-                            <h3 className="text-3xl font-black text-slate-800">{formatMoney(metrics?.revenueToday || 0)}</h3>
+                            <h3 className="text-2xl md:text-3xl font-black text-slate-800">{formatMoney(metrics?.revenueToday || 0)}</h3>
                         </div>
-                        <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center"><DollarSign size={24} /></div>
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center"><DollarSign size={20} /></div>
                     </div>
-                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2"><TrendingUp size={18} className="text-blue-500"/> Seu Desempenho (7 Dias)</h3>
                         </div>
@@ -225,9 +218,12 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                     </div>
                 </div>
 
-                {/* TABELA */}
+                {/* HISTÓRICO */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100"><h3 className="font-bold text-slate-800">Histórico Recente</h3></div>
+                    <div className="p-4 md:p-6 border-b border-slate-100"><h3 className="font-bold text-slate-800">Histórico Recente</h3></div>
+                    
+                    {/* Desktop table */}
+                    <div className="hidden md:block">
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-xs font-bold text-slate-400 uppercase">
                             <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Itens</th><th className="px-6 py-4">Pagamento</th><th className="px-6 py-4 text-right">Total</th></tr>
@@ -247,24 +243,45 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                             )}
                         </tbody>
                     </table>
+                    </div>
+                    
+                    {/* Mobile cards */}
+                    <div className="md:hidden divide-y divide-slate-50">
+                        {metrics?.recentSales?.length === 0 ? (
+                            <div className="p-8 text-center text-slate-400 text-sm">Sem vendas hoje.</div>
+                        ) : (
+                            metrics?.recentSales?.map((sale: any) => (
+                                <div key={sale.id} className="p-4 flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-slate-700">{sale.items.length} {sale.items.length === 1 ? 'produto' : 'produtos'}</p>
+                                        <p className="text-[10px] text-slate-400">{new Date(sale.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                                    </div>
+                                    <span className="font-black text-sm text-green-700 bg-green-50 px-2 py-1 rounded-lg shrink-0">{formatMoney(Number(sale.total))}</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
 
         {/* --- MODAL DE PDV --- */}
         {isPosOpen && (
-            <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                <div className="bg-white w-full max-w-[95%] h-[90vh] rounded-3xl shadow-2xl flex overflow-hidden relative">
+            <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex items-end md:items-center justify-center md:p-4 animate-in fade-in duration-200">
+                <div className="bg-white w-full md:max-w-[95%] h-[95vh] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
                     
                     {/* ESQUERDA: CATÁLOGO */}
-                    <div className="flex-1 flex flex-col bg-slate-50 border-r border-slate-200">
-                        <div className="p-6 border-b border-slate-200 bg-white flex justify-between items-center">
-                            <div><h2 className="text-xl font-black text-slate-800">Catálogo</h2><p className="text-xs text-slate-500">Selecione os itens para {saleMode === 'CREDIT' ? 'venda a crédito' : 'venda'}.</p></div>
-                            <div className="bg-slate-100 p-2 rounded-xl flex items-center gap-2 border border-slate-200 w-64"><Search className="text-slate-400" size={18} /><input className="bg-transparent outline-none text-sm w-full" placeholder="Buscar produto..." autoFocus value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+                    <div className="flex-1 flex flex-col bg-slate-50 md:border-r border-slate-200 min-h-0">
+                        <div className="p-4 md:p-6 border-b border-slate-200 bg-white flex justify-between items-center gap-3">
+                            <div className="min-w-0">
+                                <h2 className="text-base md:text-xl font-black text-slate-800">Catálogo</h2>
+                                <p className="text-[10px] md:text-xs text-slate-500 hidden sm:block">Selecione os itens para {saleMode === 'CREDIT' ? 'venda a crédito' : 'venda'}.</p>
+                            </div>
+                            <div className="bg-slate-100 p-2 rounded-xl flex items-center gap-2 border border-slate-200 flex-1 max-w-xs"><Search className="text-slate-400" size={18} /><input className="bg-transparent outline-none text-sm w-full" placeholder="Buscar..." autoFocus value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+                            <button onClick={() => setIsPosOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition md:hidden"><X size={20} className="text-slate-500"/></button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start">
+                        <div className="flex-1 overflow-y-auto p-3 md:p-6 grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 content-start">
                             {filteredProducts.map(product => (
-                                <button key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0} className="bg-white p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-left group disabled:opacity-50 disabled:cursor-not-allowed flex flex-col h-40">
+                                <button key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0} className="bg-white p-2 md:p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:shadow-md transition text-left group disabled:opacity-50 disabled:cursor-not-allowed flex flex-col h-28 md:h-40">
                                     <div className="flex-1 w-full flex items-center justify-center bg-slate-50 rounded-lg mb-3 overflow-hidden relative">
                                         {product.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-cover" /> : <Package className="text-slate-300" />}
                                         <div className="absolute bottom-1 right-1 bg-slate-800 text-white text-[10px] font-bold px-1.5 rounded">{product.stock} un</div>
@@ -277,17 +294,17 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                     </div>
 
                     {/* DIREITA: CARRINHO E CHECKOUT */}
-                    <div className="w-96 flex flex-col bg-white h-full relative border-l-8 border-slate-100">
+                    <div className="w-full md:w-96 flex flex-col bg-white h-full relative md:border-l-8 border-t md:border-t-0 border-slate-100">
                         
                         {/* Header Carrinho */}
-                        <div className={`p-6 border-b border-slate-100 flex justify-between items-center ${saleMode === 'CREDIT' ? 'bg-purple-50' : 'bg-slate-50'}`}>
+                        <div className={`p-4 md:p-6 border-b border-slate-100 flex justify-between items-center ${saleMode === 'CREDIT' ? 'bg-purple-50' : 'bg-slate-50'}`}>
                             <div>
                                 <h2 className={`font-black flex items-center gap-2 ${saleMode === 'CREDIT' ? 'text-purple-800' : 'text-slate-800'}`}>
                                     {saleMode === 'CREDIT' ? <CalendarClock size={20}/> : <ShoppingCart size={20}/>} 
                                     {saleMode === 'CREDIT' ? 'CARRINHO DE CRÉDITO' : 'CARRINHO'}
                                 </h2>
                             </div>
-                            <button onClick={() => setIsPosOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition"><X size={20} className="text-slate-500"/></button>
+                            <button onClick={() => setIsPosOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition hidden md:block"><X size={20} className="text-slate-500"/></button>
                         </div>
 
                         {/* Seletor Cliente */}
@@ -340,7 +357,7 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                         </div>
 
                         {/* --- FOOTER (PAGAMENTO SEPARADO) --- */}
-                        <div className="p-6 bg-slate-50 border-t border-slate-200">
+                        <div className="p-4 md:p-6 bg-slate-50 border-t border-slate-200">
                             
                             {/* Seletor de Pagamento Atualizado */}
                             {saleMode === 'STANDARD' && (
@@ -397,7 +414,6 @@ export const Sales = ({ onNavigate, onLogout, user, storeName, setUser }: any) =
                 </div>
             </div>
         )}
-      </main>
-    </div>
+    </Layout>
   );
 };

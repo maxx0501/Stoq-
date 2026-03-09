@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock } from 'lucide-react';
+import { ChevronDown, LogOut, Store, User, Camera, X, Mail, Shield, CheckCircle, Bell, Loader2, Check, Package, DollarSign, CalendarClock, Menu } from 'lucide-react';
 
-export const Header = ({ user, storeName, onLogout, setUser }: any) => {
+export const Header = ({ user, storeName, onLogout, setUser, onMenuToggle }: any) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
@@ -211,33 +211,41 @@ export const Header = ({ user, storeName, onLogout, setUser }: any) => {
 
   return (
     <>
-    <header className="bg-white h-20 px-8 flex items-center justify-between sticky top-0 z-20 shadow-sm border-b border-slate-100 shrink-0">
+    <header className="bg-white h-16 md:h-20 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm border-b border-slate-100 shrink-0">
       
-      {/* ESQUERDA: Logo */}
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-            <Store size={20} />
+      {/* ESQUERDA: Hamburger + Logo */}
+      <div className="flex items-center gap-3 md:gap-4 min-w-0">
+        {onMenuToggle && (
+          <button 
+            onClick={onMenuToggle} 
+            className="md:hidden p-2.5 -ml-1 text-slate-700 hover:bg-slate-100 rounded-xl transition bg-slate-50 border border-slate-200"
+          >
+            <Menu size={22} />
+          </button>
+        )}
+        <div className="w-9 h-9 md:w-10 md:h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+            <Store size={18} />
         </div>
-        <div>
-            <h1 className="text-lg font-black text-slate-800 tracking-tight">{storeName || 'Minha Loja'}</h1>
-            <p className="text-xs text-slate-500 font-medium capitalize">
+        <div className="min-w-0">
+            <h1 className="text-base md:text-lg font-black text-slate-800 tracking-tight truncate">{storeName || 'Minha Loja'}</h1>
+            <p className="text-[10px] md:text-xs text-slate-500 font-medium capitalize hidden sm:block">
                 {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
         </div>
       </div>
       
       {/* DIREITA: Ações */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 md:gap-4">
          
          {/* Notificações */}
          <div className="relative" ref={notifRef}>
-            <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(true); }} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
+            <button onClick={() => { setIsNotifOpen(!isNotifOpen); if(!isNotifOpen) fetchNotifications(true); }} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-slate-50 text-slate-500 hover:text-blue-600 transition relative">
                 <Bell size={20} />
-                {notifCount > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
+                {notifCount > 0 && <span className="absolute top-1.5 right-1.5 md:top-2 md:right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
             </button>
             
             {isNotifOpen && (
-                <div className="absolute right-0 top-14 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                <div className="absolute right-0 top-12 md:top-14 w-72 md:w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in duration-200 overflow-hidden">
                     <div className="px-4 py-2 border-b border-slate-50 flex justify-between items-center">
                         <span className="text-xs font-bold text-slate-400 uppercase">Notificações</span>
                         {isLoadingNotifs && <Loader2 size={12} className="animate-spin text-slate-400"/>}

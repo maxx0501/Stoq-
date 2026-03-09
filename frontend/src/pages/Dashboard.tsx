@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://stoqplus.com.br';
-import { Sidebar } from '../components/Sidebar';
-import { Header } from '../components/Header';
+import { Layout } from '../components/Layout';
 import { WIDGET_REGISTRY } from '../components/dashboard/WidgetRegistry';
 import { 
   TrendingUp, TrendingDown, DollarSign, ShoppingBag, AlertTriangle, Plus, ArrowRight, Wallet, 
@@ -101,10 +100,10 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   const chartAverage = calculateAverage();
 
   const KpiCard = ({ title, value, subtext, icon: Icon, color, trend, trendValue }: any) => (
-    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-      <div className="flex justify-between items-start mb-4">
-        <div><p className="text-slate-500 text-xs font-bold uppercase tracking-wide mb-1">{title}</p><h3 className="text-2xl font-black text-slate-800">{value}</h3></div>
-        <div className={`p-3 rounded-xl ${color}`}><Icon size={20} /></div>
+    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+      <div className="flex justify-between items-start mb-3 md:mb-4">
+        <div><p className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-wide mb-1">{title}</p><h3 className="text-xl md:text-2xl font-black text-slate-800">{value}</h3></div>
+        <div className={`p-2 md:p-3 rounded-xl ${color}`}><Icon size={18} /></div>
       </div>
       <div className="flex items-center gap-2 text-xs font-medium">
         {trend === 'up' && <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1 font-bold"><TrendingUp size={12}/> {trendValue}</span>}
@@ -115,33 +114,27 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
   );
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
-      <Sidebar active="dashboard" onNavigate={onNavigate} onLogout={onLogout} user={user} />
-
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <Header user={user} storeName={storeName} onLogout={onLogout} setUser={setUser} />
-
-        <div className="flex-1 overflow-y-auto p-8">
-            <div className="max-w-[1600px] mx-auto space-y-8">
+    <Layout active="dashboard" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+            <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-black text-slate-800 tracking-tight">Dashboard</h2>
                         <p className="text-slate-500 text-sm mt-1">Visão geral da performance da sua loja.</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-2 md:gap-3">
                         <button 
                             onClick={() => setShowWidgetModal(true)} 
-                            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition flex items-center gap-2 shadow-sm"
+                            className="px-3 md:px-5 py-2 md:py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 text-xs md:text-sm font-bold rounded-xl hover:bg-slate-50 transition flex items-center gap-2 shadow-sm"
                         >
-                            <LayoutGrid size={18}/> Personalizar
+                            <LayoutGrid size={16}/> <span className="hidden sm:inline">Personalizar</span><span className="sm:hidden">Widgets</span>
                             {activeWidgets.length > 0 && <span className="bg-blue-100 text-blue-600 text-[10px] px-1.5 rounded-full">{activeWidgets.length}</span>}
                         </button>
-                        <button onClick={() => onNavigate('sales')} className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-500/30"><Plus size={18}/> Nova Venda</button>
+                        <button onClick={() => onNavigate('sales')} className="px-3 md:px-5 py-2 md:py-2.5 bg-blue-600 text-white text-xs md:text-sm font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-500/30"><Plus size={16}/> <span className="hidden sm:inline">Nova Venda</span><span className="sm:hidden">Vender</span></button>
                     </div>
                 </div>
             
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                     <KpiCard title="Faturamento Hoje" value={formatMoney(data?.today.revenue)} subtext="vs. ontem" icon={DollarSign} color="bg-blue-50 text-blue-600" trend={revTrend} trendValue="vs. ontem"/>
                     <KpiCard title="Lucro Líquido" value={formatMoney(data?.today.profit)} subtext="Margem real" icon={Wallet} color="bg-emerald-50 text-emerald-600" trend={profitTrend} trendValue="vs. ontem"/>
                     <KpiCard title="Pedidos" value={data?.today.count} subtext="Volume de vendas" icon={ShoppingBag} color="bg-violet-50 text-violet-600" trend="up" trendValue="Hoje"/>
@@ -149,8 +142,8 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                 </div>
 
                 {/* 1. GRÁFICO PRINCIPAL */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+                    <div className="lg:col-span-2 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
                         <div className="flex justify-between items-center mb-6">
                             <div>
                                 <h3 className="font-bold text-slate-800 text-lg">Faturamento</h3>
@@ -164,7 +157,7 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                             </div>
                         </div>
                         
-                        <div className="h-72 w-full">
+                        <div className="h-48 md:h-72 w-full">
                           <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={data?.chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -238,12 +231,15 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                     </div>
                 )}
 
-                {/* 3. TABELA RECENTES */}
+                {/* 3. TRANSAÇÕES RECENTES */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div><h3 className="font-bold text-slate-800">Transações Recentes</h3><p className="text-xs text-slate-400">Últimas movimentações.</p></div>
-                        <button onClick={() => onNavigate('sales')} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition flex items-center gap-1">Ver histórico <ArrowRight size={12}/></button>
+                    <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                        <div><h3 className="font-bold text-slate-800 text-sm md:text-base">Transações Recentes</h3><p className="text-xs text-slate-400 hidden sm:block">Últimas movimentações.</p></div>
+                        <button onClick={() => onNavigate('sales')} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition flex items-center gap-1">Ver tudo <ArrowRight size={12}/></button>
                     </div>
+                    
+                    {/* Desktop Table */}
+                    <div className="hidden md:block">
                     <table className="w-full text-left border-collapse">
                         <thead>
                         <tr className="border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -271,9 +267,25 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                         ))}
                         </tbody>
                     </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="md:hidden divide-y divide-slate-50">
+                        {data?.recentSales.map((sale: any) => (
+                            <div key={sale.id} className="p-4 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 border border-slate-200 flex items-center justify-center text-xs font-bold uppercase shrink-0">{(sale.user?.name || user?.name || '?')[0]}</div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-bold text-slate-700 truncate">{sale.user?.name || 'Sistema'}</p>
+                                        <p className="text-[10px] text-slate-400">{new Date(sale.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' })} · {sale.items.length} {sale.items.length === 1 ? 'item' : 'itens'}</p>
+                                    </div>
+                                </div>
+                                <span className="font-black text-sm text-green-700 bg-green-50 px-2 py-1 rounded-lg shrink-0">{formatMoney(Number(sale.total))}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
 
         {/* MODAL DE GALERIA - COM SCROLL CORRIGIDO */}
         {showWidgetModal && (
@@ -321,7 +333,6 @@ export const Dashboard = ({ onLogout, user, storeName, onNavigate, setUser }: an
                 </div>
             </div>
         )}
-      </main>
-    </div>
+    </Layout>
   );
 };

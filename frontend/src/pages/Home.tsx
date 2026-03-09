@@ -12,7 +12,7 @@ interface HomeProps {
 export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
   
   const FeatureCard = ({ icon, title, desc }: any) => (
-    <div className="group bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="group bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
       <div className="w-12 h-12 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white rounded-2xl flex items-center justify-center mb-6 transition-colors">
         {icon}
       </div>
@@ -175,8 +175,8 @@ export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
 
       {/* PLANOS */}
       <section id="planos" className="bg-slate-900 py-24 px-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-20"></div>
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full blur-[120px] opacity-20"></div>
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-600 rounded-full blur-[120px] opacity-20"></div>
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-purple-600 rounded-full blur-[120px] opacity-20"></div>
 
           <div className="max-w-6xl mx-auto text-center relative z-10">
             <h2 className="text-3xl md:text-4xl font-black mb-6 text-white">Escolha como quer pagar</h2>
@@ -185,7 +185,7 @@ export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 
                 {/* PLANO MENSAL */}
-                <div className="bg-white rounded-[2rem] p-8 flex flex-col hover:scale-[1.02] transition-transform duration-300">
+                <div className="bg-white rounded-[2rem] p-6 md:p-8 flex flex-col hover:scale-[1.02] transition-transform duration-300">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-3 bg-slate-100 rounded-xl text-slate-600"><Calendar size={24}/></div>
                         <h3 className="text-xl font-bold text-slate-800">Plano Mensal</h3>
@@ -213,7 +213,7 @@ export const Home = ({ onLogin, onSignup, onNavigate }: HomeProps) => {
                 </div>
 
                 {/* PLANO ANUAL (Super Oferta) */}
-                <div className="bg-white rounded-[2rem] p-8 flex flex-col relative border-4 border-blue-600 hover:scale-[1.02] transition-transform duration-300 shadow-2xl shadow-blue-900/50">
+                <div className="bg-white rounded-[2rem] p-6 md:p-8 flex flex-col relative border-4 border-blue-600 hover:scale-[1.02] transition-transform duration-300 shadow-2xl shadow-blue-900/50">
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg flex items-center gap-1">
                         <Star size={12} className="fill-white"/> Melhor Custo-Benefício
                     </div>
