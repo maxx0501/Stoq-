@@ -158,20 +158,18 @@ export default function App() {
 
   const checkSubscriptionStatus = () => {
     if (!user || user.role === 'SELLER') return true; 
-    if (user.plan === 'PRO') return true;
-    
-    // 🔑 Verificação principal: isSubscribed
-    // Se isSubscribed for false, o usuário DEVE assinar (mesmo que seja o plano grátis)
-    if (user.isSubscribed === false) {
-      return false;
-    }
-    
-    // Backwards compatibility: se isSubscribed for true, verifica expiração
-    if (user.isSubscribed === true) {
-      return true;
-    }
-    
-    // Fallback para usuários antigos (sem isSubscribed no banco)
+        const normalizedPlan = String(user.plan || 'FREE').toUpperCase();
+
+        // Plano FREE sempre pode usar o sistema sem bloqueio de assinatura.
+        if (normalizedPlan === 'FREE') return true;
+
+        // Plano PRO precisa de assinatura ativa.
+        if (normalizedPlan === 'PRO') {
+            if (user.isSubscribed === true) return true;
+            if (user.isSubscribed === false) return false;
+        }
+
+        // Fallback para usuários antigos sem dados completos de plano/assinatura.
     const createdDate = new Date(user.storeCreatedAt || Date.now());
     const trialDays = 30; 
     const expirationDate = new Date(createdDate);

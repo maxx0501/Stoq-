@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
-import { Package, Plus, Search, Image as ImageIcon, AlertCircle, EyeOff, X, Edit, Trash2, Upload, Filter, Tag, ChevronLeft, ChevronRight, CheckCircle, AlertOctagon } from 'lucide-react';
+import { Package, Plus, Search, Image as ImageIcon, AlertCircle, EyeOff, X, Edit, Trash2, Upload, Download, Filter, Tag, ChevronLeft, ChevronRight, CheckCircle, AlertOctagon, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
+import * as XLSX from 'xlsx';
 
 export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,6 +26,13 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const itemsPerPage = 10;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  // Import Excel
+  const [importData, setImportData] = useState<any[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ success: number; errors: string[] } | null>(null);
 
   const [form, setForm] = useState({
     name: '', description: '', category: '', price: '', costPrice: '', 
@@ -32,6 +40,146 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   });
 
   useEffect(() => { fetchProducts(); }, []);
+
+  // Mapeamento de cabeçalhos PT-BR -> campos da API
+  const HEADER_MAP: Record<string, string> = {
+    'Nome': 'name', 'Categoria': 'category', 'Descrição': 'description',
+    'Preço de Venda': 'price', 'Preço de Custo': 'costPrice',
+    'Estoque': 'stock', 'Estoque Mínimo': 'minStock', 'URL da Imagem': 'imageUrl',
+  };
+
+  // Nomes de exemplo do template para filtrar na importação
+  const EXAMPLE_NAMES = ['Camiseta Basica', 'Caneca Personalizada'];
+
+  const handleDownloadTemplate = () => {
+    const wb = XLSX.utils.book_new();
+
+    const templateRows = [
+      ['Nome', 'Categoria', 'Descrição', 'Preço de Venda', 'Preço de Custo', 'Estoque', 'Estoque Mínimo', 'URL da Imagem'],
+      ['Camiseta Basica', 'Roupas', 'Algodao 100%', 49.9, 22.0, 30, 5, ''],
+      ['Caneca Personalizada', 'Utilidades', 'Caneca 325ml', 35.0, 14.5, 20, 3, ''],
+    ];
+
+    const instructionsRows = [
+      ['Coluna', 'Obrigatório?', 'Formato', 'Exemplo'],
+      ['Nome', 'Sim', 'Texto', 'Camiseta Basica'],
+      ['Categoria', 'Não', 'Texto', 'Roupas'],
+      ['Descrição', 'Não', 'Texto', 'Algodao 100%'],
+      ['Preço de Venda', 'Sim', 'Número (ex: 49.90)', '49.90'],
+      ['Preço de Custo', 'Não', 'Número (ex: 22.00)', '22.00'],
+      ['Estoque', 'Não', 'Número inteiro', '30'],
+      ['Estoque Mínimo', 'Não', 'Número inteiro', '5'],
+      ['URL da Imagem', 'Não', 'Link da imagem', 'https://exemplo.com/foto.jpg'],
+      [],
+      ['⚠️ IMPORTANTE'],
+      ['- Apague as 2 linhas de exemplo antes de preencher seus produtos.'],
+      ['- Não altere o nome das colunas na aba "Produtos".'],
+      ['- Máximo de 500 produtos por importação.'],
+    ];
+
+    const wsTemplate = XLSX.utils.aoa_to_sheet(templateRows);
+    // Largura das colunas
+    wsTemplate['!cols'] = [
+      { wch: 25 }, { wch: 15 }, { wch: 30 }, { wch: 15 },
+      { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 35 },
+    ];
+    const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsRows);
+    wsInstructions['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 30 }];
+
+    XLSX.utils.book_append_sheet(wb, wsTemplate, 'Produtos');
+    XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instruções');
+
+    XLSX.writeFile(wb, 'Modelo_Importacao_Produtos_StoqPlus.xlsx');
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input para permitir reimportar o mesmo arquivo
+    e.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      // Mapeia cabeçalhos PT-BR para campos internos e filtra exemplos
+      const mapped = rows
+        .map((row) => {
+          const product: Record<string, any> = {};
+          for (const [ptKey, apiKey] of Object.entries(HEADER_MAP)) {
+            if (row[ptKey] !== undefined) product[apiKey] = row[ptKey];
+          }
+          return product;
+        })
+        .filter((p) => {
+          // Remove linhas vazias (sem nome)
+          if (!p.name || String(p.name).trim() === '') return false;
+          // Remove linhas de exemplo do template
+          if (EXAMPLE_NAMES.includes(String(p.name).trim())) return false;
+          return true;
+        });
+
+      if (mapped.length === 0) {
+        alert('Nenhum produto encontrado na planilha.\n\nDica: apague as linhas de exemplo e preencha com seus produtos.');
+        return;
+      }
+      if (mapped.length > 500) {
+        alert('Máximo de 500 produtos por importação. Sua planilha tem ' + mapped.length + ' linhas.');
+        return;
+      }
+
+      setImportData(mapped);
+      setImportResult(null);
+      setShowImportModal(true);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleConfirmImport = async () => {
+    setIsImporting(true);
+    const token = localStorage.getItem('stoq_token');
+    let success = 0;
+    const errors: string[] = [];
+
+    for (let i = 0; i < importData.length; i++) {
+      const row = importData[i];
+      const name = String(row.name || '').trim();
+      const price = Number(row.price);
+
+      if (!name) { errors.push(`Linha ${i + 1}: Nome vazio`); continue; }
+      if (isNaN(price) || price < 0) { errors.push(`Linha ${i + 1} (${name}): Preço inválido`); continue; }
+
+      try {
+        const res = await fetch(`${API_URL}/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            name,
+            description: String(row.description || '').trim(),
+            category: String(row.category || 'Geral').trim(),
+            price,
+            costPrice: row.costPrice ? Number(row.costPrice) : 0,
+            stock: Number(row.stock) || 0,
+            minStock: row.minStock ? Number(row.minStock) : 0,
+            imageUrl: String(row.imageUrl || '').trim(),
+            isVisible: true,
+          }),
+        });
+        if (res.ok) { success++; }
+        else {
+          const data = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
+          errors.push(`Linha ${i + 1} (${name}): ${data.error}`);
+        }
+      } catch { errors.push(`Linha ${i + 1} (${name}): Erro de conexão`); }
+    }
+
+    setImportResult({ success, errors });
+    setIsImporting(false);
+    if (success > 0) await fetchProducts();
+  };
 
   const fetchProducts = async () => {
     try {
@@ -212,9 +360,18 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">Gerencie seu inventário completo.</p>
                     </div>
-                    <button onClick={openNewProductModal} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 flex items-center gap-2">
-                        <Plus size={20} /> Novo Produto
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button onClick={handleDownloadTemplate} className="bg-white text-slate-700 px-5 py-3 rounded-xl font-bold hover:bg-slate-50 transition border border-slate-200 flex items-center gap-2 text-sm">
+                      <Download size={16} /> Modelo Excel
                     </button>
+                    <button onClick={() => importInputRef.current?.click()} className="bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 flex items-center gap-2 text-sm">
+                      <FileSpreadsheet size={16} /> Importar Excel
+                    </button>
+                    <input type="file" ref={importInputRef} onChange={handleImportFile} className="hidden" accept=".xlsx,.xls,.csv" />
+                    <button onClick={openNewProductModal} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 flex items-center gap-2 text-sm">
+                      <Plus size={18} /> Novo Produto
+                    </button>
+                  </div>
                 </div>
 
                 {/* Filtros */}
@@ -328,9 +485,75 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                     <h3 className="text-xl font-black text-slate-800 mb-2">Excluir Produto?</h3>
                     <p className="text-slate-500 mb-6 text-sm">Essa ação não pode ser desfeita.</p>
                     <div className="flex gap-3">
-                        <button onClick={() => setShowConfirmDelete(false)} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button>
-                        <button onClick={confirmDelete} className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg">Excluir</button>
+                      <button onClick={() => setShowConfirmDelete(false)} disabled={isDeleting} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">Cancelar</button>
+                      <button onClick={confirmDelete} disabled={isDeleting} className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">{isDeleting ? 'Excluindo...' : 'Excluir'}</button>
                     </div>
+                </div>
+            </div>
+        )}
+
+        {/* --- MODAL IMPORTAÇÃO --- */}
+        {showImportModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50] flex items-center justify-center p-4">
+                <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
+                    <div className="bg-slate-50 px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+                        <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><FileSpreadsheet className="text-emerald-600" size={22} /> Importar Produtos</h2>
+                        <button onClick={() => { setShowImportModal(false); setImportData([]); setImportResult(null); }} className="p-2 hover:bg-slate-200 rounded-full transition"><X size={20} className="text-slate-500"/></button>
+                    </div>
+
+                    {!importResult ? (
+                        <>
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <p className="text-sm text-slate-500 mb-4"><span className="font-bold text-slate-700">{importData.length} produto{importData.length !== 1 ? 's' : ''}</span> encontrado{importData.length !== 1 ? 's' : ''} na planilha. Confira antes de importar:</p>
+                                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-slate-50">
+                                            <tr>
+                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">#</th>
+                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Nome</th>
+                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Categoria</th>
+                                                <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Preço</th>
+                                                <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Estoque</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {importData.slice(0, 50).map((p, i) => (
+                                                <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
+                                                    <td className="px-4 py-2 text-slate-400 text-xs">{i + 1}</td>
+                                                    <td className="px-4 py-2 font-medium text-slate-700">{p.name}</td>
+                                                    <td className="px-4 py-2 text-slate-500">{p.category || 'Geral'}</td>
+                                                    <td className="px-4 py-2 text-right font-bold text-slate-800">R$ {Number(p.price || 0).toFixed(2)}</td>
+                                                    <td className="px-4 py-2 text-right text-slate-600">{p.stock || 0}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {importData.length > 50 && <p className="text-xs text-slate-400 mt-2 text-center">Mostrando 50 de {importData.length} produtos...</p>}
+                            </div>
+                            <div className="px-8 py-5 border-t border-slate-100 flex gap-3">
+                                <button onClick={() => { setShowImportModal(false); setImportData([]); }} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition">Cancelar</button>
+                                <button onClick={handleConfirmImport} disabled={isImporting} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    {isImporting ? <><Loader2 size={18} className="animate-spin" /> Importando...</> : <><FileSpreadsheet size={18} /> Confirmar Importação</>}
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="p-8 text-center">
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${importResult.errors.length === 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'}`}>
+                                <CheckCircle size={48} />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-800 mb-2">Importação Concluída</h3>
+                            <p className="text-emerald-600 font-bold text-lg mb-1">{importResult.success} produto{importResult.success !== 1 ? 's' : ''} importado{importResult.success !== 1 ? 's' : ''}</p>
+                            {importResult.errors.length > 0 && (
+                                <div className="mt-4 text-left bg-red-50 border border-red-100 rounded-xl p-4 max-h-40 overflow-y-auto">
+                                    <p className="text-xs font-bold text-red-600 mb-2">{importResult.errors.length} erro{importResult.errors.length !== 1 ? 's' : ''}:</p>
+                                    {importResult.errors.map((err, i) => <p key={i} className="text-xs text-red-500 mb-1">• {err}</p>)}
+                                </div>
+                            )}
+                            <button onClick={() => { setShowImportModal(false); setImportData([]); setImportResult(null); }} className="mt-6 bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition">Fechar</button>
+                        </div>
+                    )}
                 </div>
             </div>
         )}
