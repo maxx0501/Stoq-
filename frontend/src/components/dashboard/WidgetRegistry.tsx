@@ -50,10 +50,10 @@ const CategoriesWidget = ({ data }: any) => (
 const SellersWidget = ({ data }: any) => (
     <ResponsiveContainer width="100%" height="100%">
         <BarChart layout="vertical" data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9"/>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--chart-grid, #f1f5f9)"/>
             <XAxis type="number" hide />
             <YAxis dataKey="name" type="category" width={70} tick={{fontSize: 10, fontWeight: 'bold', fill: '#64748b'}} axisLine={false} tickLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}} />
+            <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--chart-cursor, #f8fafc)'}} />
             <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} label={{ position: 'right', fill: '#94a3b8', fontSize: 10, formatter: (v:any) => formatCompact(v) }} />
         </BarChart>
     </ResponsiveContainer>
@@ -81,9 +81,9 @@ const DailyEvolutionWidget = ({ data }: any) => (
 const HourlySalesWidget = ({ data }: any) => (
     <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #f1f5f9)"/>
             <XAxis dataKey="name" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} interval={3}/>
-            <Tooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}} />
+            <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--chart-cursor, #f8fafc)'}} />
             <Bar dataKey="value" fill="#f59e0b" radius={[4, 4, 0, 0]} />
         </BarChart>
     </ResponsiveContainer>
@@ -106,9 +106,9 @@ const PaymentMethodsWidget = ({ data }: any) => (
 const WeekDayWidget = ({ data }: any) => (
     <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #f1f5f9)"/>
             <XAxis dataKey="name" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}} />
+            <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--chart-cursor, #f8fafc)'}} />
             <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={30} />
         </BarChart>
     </ResponsiveContainer>
@@ -118,10 +118,10 @@ const WeekDayWidget = ({ data }: any) => (
 const CustomersWidget = ({ data }: any) => (
     <ResponsiveContainer width="100%" height="100%">
         <BarChart layout="vertical" data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9"/>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--chart-grid, #f1f5f9)"/>
             <XAxis type="number" hide />
             <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10, fontWeight: 'bold', fill: '#64748b'}} axisLine={false} tickLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}} />
+            <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--chart-cursor, #f8fafc)'}} />
             <Bar dataKey="value" fill="#06b6d4" radius={[0, 4, 4, 0]} barSize={20} label={{ position: 'right', fill: '#94a3b8', fontSize: 10, formatter: (v:any) => formatCompact(v) }} />
         </BarChart>
     </ResponsiveContainer>
@@ -131,7 +131,7 @@ const CustomersWidget = ({ data }: any) => (
 const TicketWidget = ({ data }: any) => (
     <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #f1f5f9)"/>
             <XAxis dataKey="date" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} interval={6}/>
             <Tooltip content={<CustomTooltip />} />
             <Line type="monotone" dataKey="ticket" stroke="#f43f5e" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
@@ -161,7 +161,7 @@ const VolumeWidget = ({ data }: any) => (
 const MixedWidget = ({ data }: any) => (
     <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9"/>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid, #f1f5f9)"/>
             <XAxis dataKey="date" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} interval={6}/>
             <YAxis yAxisId="left" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={formatCompact}/>
             <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />

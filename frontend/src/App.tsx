@@ -303,23 +303,23 @@ export default function App() {
       if (user && user.mustChangePassword) {
           return (
               <div className="min-h-screen w-full flex items-center justify-center bg-slate-900 p-6 font-sans">
-                  <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 md:p-10 text-center animate-in zoom-in-95 duration-300">
-                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                  <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 md:p-10 text-center animate-in zoom-in-95 duration-300">
+                      <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
                           <Shield size={32} />
                       </div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-2">Segurança em Primeiro Lugar</h2>
-                      <p className="text-slate-500 mb-8 text-sm leading-relaxed">
+                      <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Segurança em Primeiro Lugar</h2>
+                      <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm leading-relaxed">
                           Como este é seu primeiro acesso, você precisa definir uma nova senha pessoal e segura.
                       </p>
                       
                       <form onSubmit={handleForcePasswordChange} className="space-y-4 text-left">
                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Nova Senha</label>
+                              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 mb-1 block">Nova Senha</label>
                               <div className="relative">
                                   <Lock className="absolute left-3 top-3.5 text-slate-400" size={18}/>
-                                  <input 
-                                      type={showForcePassword ? "text" : "password"} 
-                                      className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
+                                  <input
+                                      type={showForcePassword ? "text" : "password"}
+                                      className="w-full pl-10 pr-11 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700 dark:text-white"
                                       placeholder="Mínimo 6 caracteres"
                                       value={forceNewPass}
                                       onChange={e => setForceNewPass(e.target.value)}
@@ -328,12 +328,12 @@ export default function App() {
                               </div>
                           </div>
                           <div>
-                              <label className="text-xs font-bold text-slate-500 uppercase ml-1 mb-1 block">Confirmar Senha</label>
+                              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase ml-1 mb-1 block">Confirmar Senha</label>
                               <div className="relative">
                                   <CheckCircle className="absolute left-3 top-3.5 text-slate-400" size={18}/>
-                                  <input 
-                                      type={showForceConfirmPassword ? "text" : "password"} 
-                                      className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700"
+                                  <input
+                                      type={showForceConfirmPassword ? "text" : "password"}
+                                      className="w-full pl-10 pr-11 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-blue-600 transition font-bold text-slate-700 dark:text-white"
                                       placeholder="Repita a senha"
                                       value={forceConfirmPass}
                                       onChange={e => setForceConfirmPass(e.target.value)}
@@ -362,23 +362,23 @@ export default function App() {
 
       if (view === 'setup-store') {
           return (
-            <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] p-6 font-sans">
-              <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-10 border border-slate-100 text-center animate-in zoom-in-95 duration-300">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <div className="min-h-screen w-full flex items-center justify-center bg-[#F8F9FC] dark:bg-slate-900 p-6 font-sans">
+              <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-10 border border-slate-100 dark:border-slate-700 text-center animate-in zoom-in-95 duration-300">
+                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
                     <Building2 size={32} />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2">Bem-vindo, {user?.name}!</h2>
-                <p className="text-slate-500 mb-8 text-sm leading-relaxed">Para começar, precisamos criar a identidade do seu negócio no sistema.</p>
-                {storeError && <div className="bg-red-50 text-red-600 p-4 rounded-xl text-xs font-bold flex items-center gap-3 mb-6 text-left border border-red-100 animate-in shake"><AlertCircle size={18} className="shrink-0"/>{storeError}</div>}
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Bem-vindo, {user?.name}!</h2>
+                <p className="text-slate-500 dark:text-slate-400 mb-8 text-sm leading-relaxed">Para começar, precisamos criar a identidade do seu negócio no sistema.</p>
+                {storeError && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 p-4 rounded-xl text-xs font-bold flex items-center gap-3 mb-6 text-left border border-red-100 dark:border-red-800 animate-in shake"><AlertCircle size={18} className="shrink-0"/>{storeError}</div>}
                 <form onSubmit={handleCreateStore} className="text-left space-y-4">
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Nome da Empresa / Loja</label>
+                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5 ml-1">Nome da Empresa / Loja</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition"><Store size={18} /></div>
-                            <input type="text" className="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-xl outline-none focus:border-blue-600 focus:bg-white transition font-bold text-slate-800 placeholder:text-slate-300 text-lg" placeholder="Ex: Alpha Comércio" value={newStoreName} onChange={(e) => setNewStoreName(e.target.value)} autoFocus />
+                            <input type="text" className="w-full pl-11 pr-4 py-4 bg-slate-50 dark:bg-slate-700 border-2 border-slate-100 dark:border-slate-600 rounded-xl outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-700 transition font-bold text-slate-800 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-500 text-lg" placeholder="Ex: Alpha Comércio" value={newStoreName} onChange={(e) => setNewStoreName(e.target.value)} autoFocus />
                         </div>
                     </div>
-                    <button disabled={isStoreLoading || !newStoreName.trim()} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-lg hover:bg-black transition shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4">
+                    <button disabled={isStoreLoading || !newStoreName.trim()} className="w-full bg-slate-900 dark:bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-black dark:hover:bg-blue-700 transition shadow-lg shadow-slate-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4">
                         {isStoreLoading ? <Loader2 className="animate-spin"/> : <>Finalizar Configuração <ArrowRight size={20}/></>}
                     </button>
                 </form>

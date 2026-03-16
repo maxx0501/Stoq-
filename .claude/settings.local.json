@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l c:/Users/mateu/OneDrive/Área de Trabalho/Stoq+/frontend/src/pages/*.tsx c:/Users/mateu/OneDrive/Área de Trabalho/Stoq+/frontend/src/components/*.tsx c:/Users/mateu/OneDrive/Área de Trabalho/Stoq+/frontend/src/components/ui/*.tsx c:/Users/mateu/OneDrive/Área de Trabalho/Stoq+/frontend/src/components/dashboard/*.tsx)",
+      "Bash(find 'c:/Users/mateu/OneDrive/Área de Trabalho/Stoq+/frontend/src' -name *.tsx -exec wc -l {} +)",
+      "Bash(npx vite:*)"
+    ]
+  }
+}

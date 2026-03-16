@@ -9,14 +9,16 @@ interface LayoutProps {
   user?: any;
   storeName?: string;
   setUser?: any;
+  toggleTheme?: () => void;
+  currentTheme?: string;
   children: React.ReactNode;
 }
 
-export const Layout = ({ active, onNavigate, onLogout, user, storeName, setUser, children }: LayoutProps) => {
+export const Layout = ({ active, onNavigate, onLogout, user, storeName, setUser, toggleTheme, currentTheme, children }: LayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#F8F9FC] font-sans">
+    <div className="flex h-screen bg-[#F8F9FC] dark:bg-slate-900 font-sans">
       {/* Mobile overlay backdrop */}
       {isSidebarOpen && (
         <div 
@@ -35,13 +37,15 @@ export const Layout = ({ active, onNavigate, onLogout, user, storeName, setUser,
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative w-0">
-        <Header 
-          user={user} 
-          storeName={storeName} 
-          onLogout={onLogout} 
+        <Header
+          user={user}
+          storeName={storeName}
+          onLogout={onLogout}
           setUser={setUser}
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           onNavigate={onNavigate}
+          toggleTheme={toggleTheme}
+          currentTheme={currentTheme}
         />
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           {children}

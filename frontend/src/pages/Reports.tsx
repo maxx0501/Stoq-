@@ -5,9 +5,9 @@ import { Download, Calendar, TrendingUp, DollarSign, PieChart as PieIcon } from 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import * as XLSX from 'xlsx'; // <--- IMPORTANTE
 
-export const Reports = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
+export const Reports = ({ onNavigate, onLogout, user, storeName, setUser, toggleTheme, currentTheme }: any) => {
   const [data, setData] = useState<any>(null);
-  const [period, setPeriod] = useState('7days'); 
+  const [period, setPeriod] = useState('7days');
   const [activeTab, setActiveTab] = useState<'sales' | 'profit' | 'categories'>('sales');
 
   useEffect(() => { fetchReports(); }, [period]);
@@ -56,27 +56,27 @@ export const Reports = ({ onNavigate, onLogout, user, storeName, setUser }: any)
   const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   return (
-    <Layout active="reports" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+    <Layout active="reports" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser} toggleTheme={toggleTheme} currentTheme={currentTheme}>
             <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8">
-                
+
                 {/* Cabeçalho */}
                 <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800">Relatórios</h1>
-                        <p className="text-slate-500 text-sm mt-1">Análise detalhada de vendas e lucros.</p>
+                        <h1 className="text-2xl font-black text-slate-800 dark:text-white">Relatórios</h1>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Análise detalhada de vendas e lucros.</p>
                     </div>
-                    
+
                     <div className="flex flex-col sm:flex-row gap-3">
                         <div className="relative">
-                            <select value={period} onChange={(e) => setPeriod(e.target.value)} className="appearance-none bg-white border border-slate-200 text-slate-700 font-bold py-2.5 pl-10 pr-8 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm w-full sm:w-auto">
+                            <select value={period} onChange={(e) => setPeriod(e.target.value)} className="appearance-none bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2.5 pl-10 pr-8 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm dark:shadow-slate-900/50 w-full sm:w-auto">
                                 <option value="7days">Últimos 7 dias</option>
                                 <option value="30days">Últimos 30 dias</option>
                                 <option value="year">Este Ano</option>
                             </select>
-                            <Calendar size={16} className="absolute left-3 top-3 text-slate-400 pointer-events-none"/>
+                            <Calendar size={16} className="absolute left-3 top-3 text-slate-400 dark:text-slate-400 pointer-events-none"/>
                         </div>
-                        
-                        <button onClick={handleExport} className="hidden md:flex bg-white border border-slate-200 text-slate-600 font-bold py-2.5 px-4 rounded-xl text-sm items-center gap-2 hover:bg-slate-50 shadow-sm transition hover:text-green-600 hover:border-green-200">
+
+                        <button onClick={handleExport} className="hidden md:flex bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold py-2.5 px-4 rounded-xl text-sm items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm dark:shadow-slate-900/50 transition hover:text-green-600 hover:border-green-200">
                             <Download size={16} /> Exportar Excel
                         </button>
                     </div>
@@ -84,29 +84,29 @@ export const Reports = ({ onNavigate, onLogout, user, storeName, setUser }: any)
 
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex justify-between items-start mb-2"><p className="text-xs font-bold text-slate-500 uppercase">Total de Vendas</p><DollarSign size={16} className="text-slate-300"/></div>
-                        <h3 className="text-2xl md:text-3xl font-black text-slate-800">{formatMoney(data?.totalRevenue || 0)}</h3>
+                    <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm dark:shadow-slate-900/50">
+                        <div className="flex justify-between items-start mb-2"><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total de Vendas</p><DollarSign size={16} className="text-slate-300 dark:text-slate-500"/></div>
+                        <h3 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white">{formatMoney(data?.totalRevenue || 0)}</h3>
                         <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 mt-1"><TrendingUp size={10}/> Período selecionado</p>
                     </div>
-                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex justify-between items-start mb-2"><p className="text-xs font-bold text-slate-500 uppercase">Lucro Líquido</p><TrendingUp size={16} className="text-slate-300"/></div>
+                    <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm dark:shadow-slate-900/50">
+                        <div className="flex justify-between items-start mb-2"><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Lucro Líquido</p><TrendingUp size={16} className="text-slate-300 dark:text-slate-500"/></div>
                         <h3 className="text-2xl md:text-3xl font-black text-emerald-600">{formatMoney(data?.netProfit || 0)}</h3>
                         <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 mt-1"><TrendingUp size={10}/> Margem saudável</p>
                     </div>
-                    <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        <div className="flex justify-between items-start mb-2"><p className="text-xs font-bold text-slate-500 uppercase">Margem de Lucro</p><PieIcon size={16} className="text-slate-300"/></div>
-                        <h3 className="text-2xl md:text-3xl font-black text-slate-800">{data?.margin || 0}%</h3>
-                        <p className="text-[10px] font-bold text-slate-400 mt-1">Média do período</p>
+                    <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm dark:shadow-slate-900/50">
+                        <div className="flex justify-between items-start mb-2"><p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Margem de Lucro</p><PieIcon size={16} className="text-slate-300 dark:text-slate-500"/></div>
+                        <h3 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white">{data?.margin || 0}%</h3>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-400 mt-1">Média do período</p>
                     </div>
                 </div>
 
                 {/* Área Principal de Gráficos */}
-                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 min-h-[350px] md:min-h-[500px]">
-                    <div className="flex gap-2 mb-6 md:mb-8 bg-slate-50 p-1 rounded-xl w-full sm:w-fit overflow-x-auto">
-                        <button onClick={() => setActiveTab('sales')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'sales' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Vendas</button>
-                        <button onClick={() => setActiveTab('profit')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'profit' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Lucro</button>
-                        <button onClick={() => setActiveTab('categories')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'categories' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Categorias</button>
+                <div className="bg-white dark:bg-slate-800 p-4 md:p-6 rounded-2xl shadow-sm dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-700 min-h-[350px] md:min-h-[500px]">
+                    <div className="flex gap-2 mb-6 md:mb-8 bg-slate-50 dark:bg-slate-700 p-1 rounded-xl w-full sm:w-fit overflow-x-auto">
+                        <button onClick={() => setActiveTab('sales')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'sales' ? 'bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm dark:shadow-slate-900/50' : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Vendas</button>
+                        <button onClick={() => setActiveTab('profit')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'profit' ? 'bg-white dark:bg-slate-800 text-emerald-600 shadow-sm dark:shadow-slate-900/50' : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Lucro</button>
+                        <button onClick={() => setActiveTab('categories')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'categories' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm dark:shadow-slate-900/50' : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>Categorias</button>
                     </div>
 
                     <div className="h-60 md:h-80 w-full">
@@ -145,11 +145,11 @@ export const Reports = ({ onNavigate, onLogout, user, storeName, setUser }: any)
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div className="w-full md:w-1/3 space-y-3 pl-0 md:pl-8 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100">
+                                <div className="w-full md:w-1/3 space-y-3 pl-0 md:pl-8 pt-4 md:pt-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700">
                                     {data?.categoryData.map((entry: any, index: number) => (
                                         <div key={index} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div><span className="text-sm font-bold text-slate-600">{entry.name}</span></div>
-                                            <span className="text-xs font-bold text-slate-400">{((entry.value / data.totalRevenue) * 100).toFixed(0)}%</span>
+                                            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div><span className="text-sm font-bold text-slate-600 dark:text-slate-300">{entry.name}</span></div>
+                                            <span className="text-xs font-bold text-slate-400 dark:text-slate-400">{((entry.value / data.totalRevenue) * 100).toFixed(0)}%</span>
                                         </div>
                                     ))}
                                 </div>

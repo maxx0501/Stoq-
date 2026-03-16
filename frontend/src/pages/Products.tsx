@@ -4,14 +4,14 @@ import { Package, Plus, Search, Image as ImageIcon, AlertCircle, EyeOff, X, Edit
 import { Layout } from '../components/Layout';
 import * as XLSX from 'xlsx';
 
-export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any) => {
+export const Products = ({ onNavigate, onLogout, user, storeName, setUser, toggleTheme, currentTheme }: any) => {
   const [products, setProducts] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Modais de Feedback
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
@@ -23,7 +23,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +34,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const [importResult, setImportResult] = useState<{ success: number; errors: string[] } | null>(null);
 
   const [form, setForm] = useState({
-    name: '', description: '', category: '', price: '', costPrice: '', 
+    name: '', description: '', category: '', price: '', costPrice: '',
     stock: '', minStock: '', imageUrl: '', isVisible: true
   });
 
@@ -233,12 +233,12 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: 'Erro ao deletar produto' }));
         throw new Error(data.error || 'Erro ao deletar produto');
       }
-      
+
       setSuccessMessage('Produto deletado com sucesso!');
       setShowSuccessModal(true);
       setTimeout(() => setShowSuccessModal(false), 2000);
@@ -255,7 +255,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return; // Previne cliques múltiplos
-    
+
     setIsLoading(true);
     const token = localStorage.getItem('stoq_token');
     const url = isEditing ? `${API_URL}/products/${currentId}` : `${API_URL}/products`;
@@ -268,7 +268,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         setIsLoading(false);
         return;
       }
-      
+
       if (!form.price || Number(form.price) < 0) {
         alert('Preço deve ser um valor positivo');
         setIsLoading(false);
@@ -308,7 +308,7 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         setForm({ name: '', description: '', category: '', price: '', costPrice: '', stock: '', minStock: '', imageUrl: '', isVisible: true });
         setIsEditing(false);
         setCurrentId(null);
-        
+
         // Feedback Visual
         setSuccessMessage(isEditing ? "Produto atualizado!" : "Produto criado com sucesso!");
         setShowSuccessModal(true);
@@ -342,19 +342,19 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   return (
-    <Layout active="products" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser}>
+    <Layout active="products" onNavigate={onNavigate} onLogout={onLogout} user={user} storeName={storeName} setUser={setUser} toggleTheme={toggleTheme} currentTheme={currentTheme}>
             <div className="max-w-[1600px] mx-auto">
-                
+
                 {/* Header Página */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
                     <div>
-                        <h1 className="text-xl md:text-2xl font-black text-slate-800 flex items-center gap-2">
+                        <h1 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
                             <Package className="text-blue-600" /> Catálogo de Produtos
                         </h1>
-                        <p className="text-slate-500 text-sm mt-1">Gerencie seu inventário completo.</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie seu inventário completo.</p>
                     </div>
                   <div className="flex flex-wrap gap-2 md:gap-3">
-                    <button onClick={handleDownloadTemplate} className="hidden md:flex bg-white text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-50 transition border border-slate-200 items-center gap-2 text-sm">
+                    <button onClick={handleDownloadTemplate} className="hidden md:flex bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition border border-slate-200 dark:border-slate-600 items-center gap-2 text-sm">
                       <Download size={16} /> Modelo Excel
                     </button>
                     <button onClick={() => importInputRef.current?.click()} className="hidden md:flex bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-500/30 items-center gap-2 text-sm">
@@ -368,17 +368,17 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                 </div>
 
                 {/* Filtros */}
-                <div className="bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 md:mb-8 space-y-3 md:space-y-4">
-                    <div className="flex items-center gap-3 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 focus-within:border-blue-400 transition">
+                <div className="bg-white dark:bg-slate-800 p-3 md:p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mb-6 md:mb-8 space-y-3 md:space-y-4">
+                    <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-600 focus-within:border-blue-400 transition">
                         <Search className="text-slate-400" />
-                        <input className="flex-1 bg-transparent outline-none text-slate-700 font-medium" 
+                        <input className="flex-1 bg-transparent outline-none text-slate-700 dark:text-white font-medium dark:placeholder-slate-400"
                             placeholder="Buscar por nome ou categoria..." value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setCurrentPage(1);}} />
                         {searchTerm && <button onClick={() => setSearchTerm('')}><X size={16} className="text-slate-400"/></button>}
                     </div>
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                         <div className="flex items-center gap-1 text-slate-400 text-xs font-bold uppercase mr-2 shrink-0"><Filter size={14} /> Filtros:</div>
                         {categories.map((cat) => (
-                            <button key={cat} onClick={() => {setSelectedCategory(cat); setCurrentPage(1);}} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition border ${selectedCategory === cat ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>
+                            <button key={cat} onClick={() => {setSelectedCategory(cat); setCurrentPage(1);}} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition border ${selectedCategory === cat ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600'}`}>
                                 {cat}
                             </button>
                         ))}
@@ -390,9 +390,9 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                     {currentItems.map((product) => {
                         const isLowStock = (product.stock || 0) <= (product.minStock || 0);
                         return (
-                        <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col relative">
-                            <div className="h-32 md:h-48 w-full bg-slate-100 relative overflow-hidden">
-                                {product.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50"><ImageIcon size={48} /></div>}
+                        <div key={product.id} className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group flex flex-col relative">
+                            <div className="h-32 md:h-48 w-full bg-slate-100 dark:bg-slate-700 relative overflow-hidden">
+                                {product.imageUrl ? <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-500 bg-slate-50 dark:bg-slate-700"><ImageIcon size={48} /></div>}
                                 <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                                     <div className="flex flex-col gap-1">
                                         {product.isVisible === false && <span className="bg-slate-800/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit"><EyeOff size={10} /> Oculto</span>}
@@ -402,17 +402,17 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                             </div>
                             <div className="p-3 md:p-5 flex-1 flex flex-col">
                                 <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-1 rounded-md flex items-center gap-1"><Tag size={10} /> {product.category || 'Geral'}</span>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md flex items-center gap-1"><Tag size={10} /> {product.category || 'Geral'}</span>
                                     <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleEditClick(product)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit size={16} /></button>
-                                        <button onClick={() => handleDeleteClick(product.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 size={16} /></button>
+                                        <button onClick={() => handleEditClick(product)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition"><Edit size={16} /></button>
+                                        <button onClick={() => handleDeleteClick(product.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition"><Trash2 size={16} /></button>
                                     </div>
                                 </div>
-                                <h3 className="font-bold text-slate-800 mb-1 leading-tight text-sm line-clamp-1">{product.name}</h3>
-                                <p className="text-xs text-slate-500 line-clamp-2 mb-3 md:mb-4 flex-1 h-8 hidden md:block">{product.description || 'Sem descrição.'}</p>
-                                <div className="border-t border-slate-50 pt-3 md:pt-4 flex items-end justify-between">
-                                    <div><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Preço</p><p className="text-base md:text-lg font-black text-slate-900">R$ {Number(product.price || 0).toFixed(2)}</p></div>
-                                    <div className="text-right"><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Estoque</p><div className={`font-bold text-sm px-2 py-0.5 rounded-lg ${isLowStock ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>{product.stock || 0} un</div></div>
+                                <h3 className="font-bold text-slate-800 dark:text-white mb-1 leading-tight text-sm line-clamp-1">{product.name}</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 md:mb-4 flex-1 h-8 hidden md:block">{product.description || 'Sem descrição.'}</p>
+                                <div className="border-t border-slate-50 dark:border-slate-700 pt-3 md:pt-4 flex items-end justify-between">
+                                    <div><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Preço</p><p className="text-base md:text-lg font-black text-slate-900 dark:text-white">R$ {Number(product.price || 0).toFixed(2)}</p></div>
+                                    <div className="text-right"><p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Estoque</p><div className={`font-bold text-sm px-2 py-0.5 rounded-lg ${isLowStock ? 'bg-red-50 dark:bg-red-900/30 text-red-600' : 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>{product.stock || 0} un</div></div>
                                 </div>
                             </div>
                         </div>
@@ -423,9 +423,9 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                 {/* Paginação */}
                 {totalPages > 1 && (
                     <div className="flex justify-center gap-4 mt-8">
-                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition"><ChevronLeft size={16}/> Anterior</button>
+                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition"><ChevronLeft size={16}/> Anterior</button>
                         <span className="flex items-center text-sm font-bold text-slate-400">Página {currentPage} de {totalPages}</span>
-                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50 transition">Próxima <ChevronRight size={16}/></button>
+                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition">Próxima <ChevronRight size={16}/></button>
                     </div>
                 )}
 
@@ -434,34 +434,34 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         {/* --- MODAL CADASTRO (Mantido) --- */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50] flex items-end md:items-center justify-center md:p-4">
-            <div className="bg-white w-full md:max-w-3xl rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] md:max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom md:fade-in md:zoom-in duration-200">
-              <div className="bg-slate-50 px-5 md:px-8 py-4 md:py-6 border-b border-slate-100 flex justify-between items-center sticky top-0 z-10">
-                <h2 className="text-lg md:text-xl font-black text-slate-800">{isEditing ? 'Editar Produto' : 'Cadastrar Novo Item'}</h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition"><X size={20} className="text-slate-500"/></button>
+            <div className="bg-white dark:bg-slate-800 w-full md:max-w-3xl rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] md:max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom md:fade-in md:zoom-in duration-200">
+              <div className="bg-slate-50 dark:bg-slate-700 px-5 md:px-8 py-4 md:py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 z-10">
+                <h2 className="text-lg md:text-xl font-black text-slate-800 dark:text-white">{isEditing ? 'Editar Produto' : 'Cadastrar Novo Item'}</h2>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full transition"><X size={20} className="text-slate-500 dark:text-slate-400"/></button>
               </div>
               <form onSubmit={handleSave} className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                 <div className="space-y-6">
                   <div>
-                    <label className="text-xs font-bold text-slate-500 mb-2 block">FOTO</label>
-                    <div onClick={() => fileInputRef.current?.click()} className="w-full h-48 border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition bg-slate-50 overflow-hidden relative">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 block">FOTO</label>
+                    <div onClick={() => fileInputRef.current?.click()} className="w-full h-48 border-2 border-dashed border-slate-300 dark:border-slate-500 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition bg-slate-50 dark:bg-slate-700 overflow-hidden relative">
                       {form.imageUrl ? <img src={form.imageUrl} className="w-full h-full object-cover" /> : <><Upload size={20} className="text-blue-600 mb-2"/><span className="text-xs font-bold text-slate-400">Enviar foto</span></>}
                       <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                     </div>
                   </div>
-                  <div><label className="text-xs font-bold text-slate-500">NOME</label><input className="input-padrao" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required /></div>
-                  <div><label className="text-xs font-bold text-slate-500">CATEGORIA</label><input className="input-padrao" value={form.category} onChange={e => setForm({...form, category: e.target.value})} /></div>
+                  <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">NOME</label><input className="input-padrao dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required /></div>
+                  <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">CATEGORIA</label><input className="input-padrao dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.category} onChange={e => setForm({...form, category: e.target.value})} /></div>
                 </div>
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs font-bold text-slate-500">PREÇO VENDA</label><input type="number" step="0.01" className="input-padrao" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required /></div>
-                    <div><label className="text-xs font-bold text-slate-500">CUSTO</label><input type="number" step="0.01" className="input-padrao" value={form.costPrice} onChange={e => setForm({...form, costPrice: e.target.value})} /></div>
+                    <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">PREÇO VENDA</label><input type="number" step="0.01" className="input-padrao dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required /></div>
+                    <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">CUSTO</label><input type="number" step="0.01" className="input-padrao dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.costPrice} onChange={e => setForm({...form, costPrice: e.target.value})} /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-xs font-bold text-slate-500">ESTOQUE</label><input type="number" className="input-padrao" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} required /></div>
-                    <div><label className="text-xs font-bold text-slate-500">MÍNIMO</label><input type="number" className="input-padrao" value={form.minStock} onChange={e => setForm({...form, minStock: e.target.value})} /></div>
+                    <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">ESTOQUE</label><input type="number" className="input-padrao dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} required /></div>
+                    <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">MÍNIMO</label><input type="number" className="input-padrao dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.minStock} onChange={e => setForm({...form, minStock: e.target.value})} /></div>
                   </div>
-                  <div><label className="text-xs font-bold text-slate-500">DESCRIÇÃO</label><textarea className="input-padrao h-24 resize-none" value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
-                  <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl"><input type="checkbox" checked={form.isVisible} onChange={e => setForm({...form, isVisible: e.target.checked})} className="w-5 h-5 accent-blue-600" /><label className="text-sm font-medium text-slate-700">Visível no catálogo</label></div>
+                  <div><label className="text-xs font-bold text-slate-500 dark:text-slate-400">DESCRIÇÃO</label><textarea className="input-padrao h-24 resize-none dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder-slate-400" value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
+                  <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700 rounded-xl"><input type="checkbox" checked={form.isVisible} onChange={e => setForm({...form, isVisible: e.target.checked})} className="w-5 h-5 accent-blue-600" /><label className="text-sm font-medium text-slate-700 dark:text-slate-200">Visível no catálogo</label></div>
                   <button type="submit" disabled={isLoading || !form.name.trim()} className="w-full bg-[#0f172a] text-white py-4 rounded-xl font-bold hover:bg-blue-900 transition shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed">{isLoading ? 'Salvando...' : isEditing ? 'Salvar' : 'Cadastrar'}</button>
                 </div>
               </form>
@@ -472,12 +472,12 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         {/* --- MODAL CONFIRMAR EXCLUSÃO --- */}
         {showConfirmDelete && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in duration-200">
-                    <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertOctagon size={32} /></div>
-                    <h3 className="text-xl font-black text-slate-800 mb-2">Excluir Produto?</h3>
-                    <p className="text-slate-500 mb-6 text-sm">Essa ação não pode ser desfeita.</p>
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center animate-in zoom-in duration-200">
+                    <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertOctagon size={32} /></div>
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">Excluir Produto?</h3>
+                    <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">Essa ação não pode ser desfeita.</p>
                     <div className="flex gap-3">
-                      <button onClick={() => setShowConfirmDelete(false)} disabled={isDeleting} className="flex-1 py-2.5 font-bold text-slate-500 hover:bg-slate-50 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">Cancelar</button>
+                      <button onClick={() => setShowConfirmDelete(false)} disabled={isDeleting} className="flex-1 py-2.5 font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed">Cancelar</button>
                       <button onClick={confirmDelete} disabled={isDeleting} className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">{isDeleting ? 'Excluindo...' : 'Excluir'}</button>
                     </div>
                 </div>
@@ -487,35 +487,35 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         {/* --- MODAL IMPORTAÇÃO --- */}
         {showImportModal && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[50] flex items-center justify-center p-4">
-                <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
-                    <div className="bg-slate-50 px-8 py-6 border-b border-slate-100 flex justify-between items-center">
-                        <h2 className="text-xl font-black text-slate-800 flex items-center gap-2"><FileSpreadsheet className="text-emerald-600" size={22} /> Importar Produtos</h2>
-                        <button onClick={() => { setShowImportModal(false); setImportData([]); setImportResult(null); }} className="p-2 hover:bg-slate-200 rounded-full transition"><X size={20} className="text-slate-500"/></button>
+                <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in duration-200">
+                    <div className="bg-slate-50 dark:bg-slate-700 px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                        <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2"><FileSpreadsheet className="text-emerald-600" size={22} /> Importar Produtos</h2>
+                        <button onClick={() => { setShowImportModal(false); setImportData([]); setImportResult(null); }} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full transition"><X size={20} className="text-slate-500 dark:text-slate-400"/></button>
                     </div>
 
                     {!importResult ? (
                         <>
                             <div className="p-6 overflow-y-auto flex-1">
-                                <p className="text-sm text-slate-500 mb-4"><span className="font-bold text-slate-700">{importData.length} produto{importData.length !== 1 ? 's' : ''}</span> encontrado{importData.length !== 1 ? 's' : ''} na planilha. Confira antes de importar:</p>
-                                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4"><span className="font-bold text-slate-700 dark:text-slate-200">{importData.length} produto{importData.length !== 1 ? 's' : ''}</span> encontrado{importData.length !== 1 ? 's' : ''} na planilha. Confira antes de importar:</p>
+                                <div className="border border-slate-200 dark:border-slate-600 rounded-xl overflow-hidden">
                                     <table className="w-full text-sm">
-                                        <thead className="bg-slate-50">
+                                        <thead className="bg-slate-50 dark:bg-slate-700">
                                             <tr>
-                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">#</th>
-                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Nome</th>
-                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Categoria</th>
-                                                <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Preço</th>
-                                                <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase">Estoque</th>
+                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">#</th>
+                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Nome</th>
+                                                <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Categoria</th>
+                                                <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Preço</th>
+                                                <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Estoque</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {importData.slice(0, 50).map((p, i) => (
-                                                <tr key={i} className="border-t border-slate-100 hover:bg-slate-50">
+                                                <tr key={i} className="border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
                                                     <td className="px-4 py-2 text-slate-400 text-xs">{i + 1}</td>
-                                                    <td className="px-4 py-2 font-medium text-slate-700">{p.name}</td>
-                                                    <td className="px-4 py-2 text-slate-500">{p.category || 'Geral'}</td>
-                                                    <td className="px-4 py-2 text-right font-bold text-slate-800">R$ {Number(p.price || 0).toFixed(2)}</td>
-                                                    <td className="px-4 py-2 text-right text-slate-600">{p.stock || 0}</td>
+                                                    <td className="px-4 py-2 font-medium text-slate-700 dark:text-slate-200">{p.name}</td>
+                                                    <td className="px-4 py-2 text-slate-500 dark:text-slate-400">{p.category || 'Geral'}</td>
+                                                    <td className="px-4 py-2 text-right font-bold text-slate-800 dark:text-white">R$ {Number(p.price || 0).toFixed(2)}</td>
+                                                    <td className="px-4 py-2 text-right text-slate-600 dark:text-slate-300">{p.stock || 0}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -523,8 +523,8 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                                 </div>
                                 {importData.length > 50 && <p className="text-xs text-slate-400 mt-2 text-center">Mostrando 50 de {importData.length} produtos...</p>}
                             </div>
-                            <div className="px-8 py-5 border-t border-slate-100 flex gap-3">
-                                <button onClick={() => { setShowImportModal(false); setImportData([]); }} className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition">Cancelar</button>
+                            <div className="px-8 py-5 border-t border-slate-100 dark:border-slate-700 flex gap-3">
+                                <button onClick={() => { setShowImportModal(false); setImportData([]); }} className="flex-1 py-3 font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition">Cancelar</button>
                                 <button onClick={handleConfirmImport} disabled={isImporting} className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                                     {isImporting ? <><Loader2 size={18} className="animate-spin" /> Importando...</> : <><FileSpreadsheet size={18} /> Confirmar Importação</>}
                                 </button>
@@ -532,13 +532,13 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
                         </>
                     ) : (
                         <div className="p-8 text-center">
-                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${importResult.errors.length === 0 ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'}`}>
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${importResult.errors.length === 0 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500' : 'bg-amber-50 dark:bg-amber-900/30 text-amber-500'}`}>
                                 <CheckCircle size={48} />
                             </div>
-                            <h3 className="text-2xl font-black text-slate-800 mb-2">Importação Concluída</h3>
+                            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Importação Concluída</h3>
                             <p className="text-emerald-600 font-bold text-lg mb-1">{importResult.success} produto{importResult.success !== 1 ? 's' : ''} importado{importResult.success !== 1 ? 's' : ''}</p>
                             {importResult.errors.length > 0 && (
-                                <div className="mt-4 text-left bg-red-50 border border-red-100 rounded-xl p-4 max-h-40 overflow-y-auto">
+                                <div className="mt-4 text-left bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 rounded-xl p-4 max-h-40 overflow-y-auto">
                                     <p className="text-xs font-bold text-red-600 mb-2">{importResult.errors.length} erro{importResult.errors.length !== 1 ? 's' : ''}:</p>
                                     {importResult.errors.map((err, i) => <p key={i} className="text-xs text-red-500 mb-1">• {err}</p>)}
                                 </div>
@@ -553,10 +553,10 @@ export const Products = ({ onNavigate, onLogout, user, storeName, setUser }: any
         {/* --- MODAL SUCESSO --- */}
         {showSuccessModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center animate-in zoom-in duration-300">
-                    <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={48} className="animate-bounce" /></div>
-                    <h3 className="text-2xl font-black text-slate-800 mb-1">Sucesso!</h3>
-                    <p className="text-slate-500 font-bold">{successMessage}</p>
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center animate-in zoom-in duration-300">
+                    <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle size={48} className="animate-bounce" /></div>
+                    <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-1">Sucesso!</h3>
+                    <p className="text-slate-500 dark:text-slate-400 font-bold">{successMessage}</p>
                 </div>
             </div>
         )}
